@@ -15,6 +15,7 @@
 .extern _ebss
 
 .extern SystemInit
+.extern SystemCoreClockUpdate
 .extern __libc_init_array
 .extern main
 
@@ -171,6 +172,11 @@ Runtime_Entry:
      * access ordinary static/global variables if needed.
      */
     bl SystemInit
+
+    /*
+     * Update SystemCoreClock
+     */
+    bl SystemCoreClockUpdate
 
     /*
      * Run C++ global constructors registered in .preinit_array and

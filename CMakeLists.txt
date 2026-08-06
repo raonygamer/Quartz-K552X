@@ -26,17 +26,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(MCPU cortex-m0)
 set(FIRMWARE_TARGET quartz-k552x)
 
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
+    src/*.c
+    src/*.cpp
+)
+
 add_executable(${FIRMWARE_TARGET}
         mcu/startup.S
-
-        src/system_SN32F240B.c
-        src/main.cpp
-        src/gpio.c
-        src/usb/usb.c
-        src/matrix.c
-        src/timer.c
-        src/system.c
-        src/runtime.cpp
+        ${SOURCES}
 )
 
 set_target_properties(${FIRMWARE_TARGET} PROPERTIES
