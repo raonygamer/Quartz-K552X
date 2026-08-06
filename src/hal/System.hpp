@@ -13,3 +13,4 @@ namespace quartz::hal {
 }
 
 extern "C" void SysTick_Handler();
+extern "C" void USB_IRQHandler();
