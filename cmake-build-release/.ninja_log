@@ -1,0 +1,24 @@
+# ninja log v7
+0	5	1785882804171026511	CMakeFiles/k552w-rgb-pro.elf.dir/startup_SN32F240B.S.obj	c9ddac069e54413e
+0	15	1785882804171464502	CMakeFiles/k552w-rgb-pro.elf.dir/src/system_SN32F240B.c.obj	89767ea16d808ce5
+1	33	1785964600338038371	CMakeFiles/k552w-rgb-pro.elf.dir/src/main.c.obj	40e2f143f3c529be
+0	24	1785886753940734129	CMakeFiles/k552w-rgb-pro.elf.dir/src/gpio.c.obj	f75a40d216e97b3
+40	45	1785966679634565905	k552w-rgb-pro.elf	4e769e88306ebc18
+0	40	1785966679594564343	CMakeFiles/k552w-rgb-pro.elf.dir/src/usb/usb.c.obj	614be223730ed8
+0	8	1785974588869311944	build.ninja	f0a1c79875824c3f
+0	8	1785974588869311944	/mnt/work/GitHub/k552w-rgb-pro-custom/cmake-build-release/cmake_install.cmake	f0a1c79875824c3f
+0	11	1785954534383116916	CMakeFiles/k552w-rgb-pro.elf.dir/src/matrix.c.obj	ce3e380b221c6752
+0	13	1785955238843312650	CMakeFiles/k552w-rgb-pro.elf.dir/src/timer.c.obj	4e6f9375648da10f
+0	11	1785954668344584310	CMakeFiles/k552w-rgb-pro.elf.dir/src/system.c.obj	c3430f0121f57965
+0	7	1785974445236313553	CMakeFiles/quartz-k552x.dir/mcu/startup.S.obj	e871b4323836e747
+1	14	1785974445237550661	CMakeFiles/quartz-k552x.dir/src/matrix.c.obj	30f769fc16ac1534
+1	17	1785974445237656543	CMakeFiles/quartz-k552x.dir/src/system.c.obj	166fba40e239db04
+1	22	1785974445237600987	CMakeFiles/quartz-k552x.dir/src/timer.c.obj	7c63d209ec40e408
+0	23	1785974445237354758	CMakeFiles/quartz-k552x.dir/src/system_SN32F240B.c.obj	abcd5e8991208cd2
+0	28	1785974445237410273	CMakeFiles/quartz-k552x.dir/src/main.cpp.obj	a3c99ec1e8ea4c1
+1	34	1785974445237468645	CMakeFiles/quartz-k552x.dir/src/gpio.c.obj	a8349b40e032963b
+1	49	1785974445237507449	CMakeFiles/quartz-k552x.dir/src/usb/usb.c.obj	59b14615bf8b398a
+0	13	1785974647441000492	CMakeFiles/quartz-k552x.dir/src/runtime.cpp.obj	fcd85c6df3d8e105
+13	19	1785974647454391585	quartz-k552x.elf	8a7e9c3287226aa2
+1	18	1785974696744872122	CMakeFiles/quartz-k552x.dir/src/main.cpp.obj	a3c99ec1e8ea4c1
+18	23	1785974696761872768	quartz-k552x.elf	8a7e9c3287226aa2
