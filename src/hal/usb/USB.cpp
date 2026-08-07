@@ -1,6 +1,6 @@
 #include "USB.hpp"
 #include "../../usb/Interrupt.hpp"
-#include "../timer/Timer.hpp"
+#include "../timer/HighResolutionTimer.hpp"
 
 extern "C" {
     #include "SN32F240B.h"
@@ -279,7 +279,7 @@ namespace quartz::hal {
         SN_USB->ADDR = address & 0x7Fu;
     }
 
-    void USB::prepareForBootloader() noexcept
+    void USB::teardownForBootloader() noexcept
     {
         NVIC_DisableIRQ(USB_IRQn);
         NVIC_ClearPendingIRQ(USB_IRQn);
@@ -287,7 +287,7 @@ namespace quartz::hal {
         SN_USB->INTEN = 0u;
 
         disconnect();
-        hal::Timer::wait(20);
+        hal::HighResolutionTimer::waitMicroseconds(20);
 
         SN_USB->EP0CTL = 0u;
         SN_USB->EP1CTL = 0u;

@@ -1,6 +1,8 @@
 #include "System.hpp"
+#include "timer/HighResolutionTimer.hpp"
 #include "timer/Timer.hpp"
 #include "usb/USB.hpp"
+#include "debug/Panic.hpp"
 #include "../usb/Interrupt.hpp"
 #include "../usb/Device.hpp"
 
@@ -13,17 +15,27 @@ namespace quartz::hal {
         SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk; // Enable SysTick with interrupt
     }
 
-    void System::toBootloader() noexcept
+    void System::teardownEverything() noexcept
     {
-        hal::USB::prepareForBootloader();
+        hal::USB::teardownForBootloader();
 
         SysTick->CTRL = 0u;
         SysTick->LOAD = 0u;
         SysTick->VAL  = 0u;
-        NVIC_ClearPendingIRQ(SysTick_IRQn);
+        SCB->ICSR = SCB_ICSR_PENDSTCLR_Msk;
+
+        NVIC_DisableIRQ(CT16B0_IRQn);
+        NVIC_ClearPendingIRQ(CT16B0_IRQn);
+
+        SN_CT16B0->TMRCTRL = 0u;
+        SN_CT16B0->IC = 1u;
 
         SN_SYS0->IVTM = 0;
+    }
 
+    void System::toBootloader() noexcept
+    {
+        teardownEverything();
         __asm volatile(
             "cpsid i\n"
             "dsb\n"
@@ -44,4 +56,18 @@ extern "C" void SysTick_Handler()
 extern "C" void USB_IRQHandler()
 {
     quartz::usb::Device::handleInterrupt();
+}
+
+extern "C" void HardFault_Handler()
+{
+    quartz::debug::Panic::captureState();
+    quartz::debug::Panic::incrementPanicCount();
+    quartz::hal::HighResolutionTimer::waitMilliseconds(100);
+    quartz::debug::Panic::blinkDebuggingLeds(100, 20);
+    quartz::debug::Panic::setDebuggingLedState(false);
+    quartz::hal::HighResolutionTimer::waitMilliseconds(100);
+
+    quartz::hal::System::teardownEverything();
+    NVIC_SystemReset();
+    __builtin_unreachable();
 }

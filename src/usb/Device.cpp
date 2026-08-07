@@ -8,6 +8,7 @@
 #include "hal/usb/USB.hpp"
 #include "hal/gpio/GPIO.hpp"
 #include "debug/DebugEndpoint.hpp"
+#include "hal/timer/HighResolutionTimer.hpp"
 
 namespace quartz::usb {
     namespace {
@@ -21,6 +22,22 @@ namespace quartz::usb {
         constexpr std::uint8_t DescriptorString = 0x03;
     }
 
+    std::array<void(*)(), hal::USB::MaxEndpoint + 1> Device::endpointInHandlers {
+        &handleEP0In,
+        &handleEP1In,
+        &handleEP2In,
+        &handleEP3In,
+        &handleEP4In
+    };
+
+    std::array<void(*)(), hal::USB::MaxEndpoint + 1> Device::endpointOutHandlers {
+        &handleEP0Out,
+        &handleEP1Out,
+        &handleEP2Out,
+        &handleEP3Out,
+        &handleEP4Out
+    };
+
     void Device::initialize() noexcept
     {
         pendingAddress = 0;
@@ -28,11 +45,43 @@ namespace quartz::usb {
         pendingConfiguration = 0;
         configurationPending = false;
         configuration = 0;
-        controlState = ControlState::Idle;
+        ep0State = ControlState::Idle;
+        endpointStates = {
+            EndpointState::Idle,
+            EndpointState::Idle,
+            EndpointState::Idle,
+            EndpointState::Idle,
+            EndpointState::Idle
+        };
 
         debug::DebugEndpoint::reset();
         hal::USB::initialize();
         hal::USB::connect();
+    }
+
+    bool Device::isConfigured() noexcept
+    {
+        return configuration != 0u && pendingConfiguration == 0u && configurationPending == false;
+    }
+
+    bool Device::waitUntilConfigured(const std::uint64_t timeoutMilliseconds) noexcept
+    {
+        const auto start =
+            hal::HighResolutionTimer::nowTicks();
+
+        const auto timeout =
+            timeoutMilliseconds *
+            hal::HighResolutionTimer::TicksPerMillisecond;
+
+        while (!isConfigured())
+        {
+            if ((hal::HighResolutionTimer::nowTicks() - start) >= timeout)
+                return false;
+
+            __WFI();
+        }
+
+        return true;
     }
 
     void Device::handleInterrupt() noexcept
@@ -59,11 +108,11 @@ namespace quartz::usb {
         }
 
         if (hasInterrupt(status, Interrupt::EP0In)) {
-            handleEP0In();
+            handleEndpointIn(0);
         }
 
         if (hasInterrupt(status, Interrupt::EP0Out)) {
-            handleEP0Out();
+            handleEndpointOut(0);
         }
 
         if (hasInterrupt(status, Interrupt::EP4Ack)) {
@@ -71,8 +120,17 @@ namespace quartz::usb {
                 value(Interrupt::EP4Ack)
             );
 
-            debug::DebugEndpoint::handleTransmitComplete();
+            handleEndpointIn(4);
         }
+    }
+
+    bool Device::isEndpointBusy(std::uint8_t endpoint) noexcept
+    {
+        if (endpoint > hal::USB::MaxEndpoint) {
+            return false;
+        }
+
+        return endpointStates[endpoint] != EndpointState::Idle;
     }
 
     void Device::handleBusReset() noexcept
@@ -86,7 +144,14 @@ namespace quartz::usb {
         pendingConfiguration = 0;
         configurationPending = false;
         configuration = 0;
-        controlState = ControlState::Idle;
+        ep0State = ControlState::Idle;
+        endpointStates = {
+            EndpointState::Idle,
+            EndpointState::Idle,
+            EndpointState::Idle,
+            EndpointState::Idle,
+            EndpointState::Idle
+        };
         debug::DebugEndpoint::reset();
         hal::USB::resetBus();
     }
@@ -140,7 +205,7 @@ namespace quartz::usb {
                 value(Interrupt::SetupError)
             );
 
-            stallEP0();
+            stallEndpoint(0);
             return;
         }
 
@@ -150,7 +215,7 @@ namespace quartz::usb {
                 return;
 
             default:
-                stallEP0();
+                stallEndpoint(0);
                 return;
         }
     }
@@ -167,7 +232,7 @@ namespace quartz::usb {
                     setup.value > 127u ||
                     setup.index != 0u ||
                     setup.length != 0u) {
-                    stallEP0();
+                    stallEndpoint(0);
                     return;
                 }
 
@@ -176,7 +241,7 @@ namespace quartz::usb {
 
                 addressPending = true;
 
-                sendEP0ZeroLengthPacket();
+                sendEndpointZeroLengthPacket(0);
                 return;
 
             case RequestSetConfiguration:
@@ -184,7 +249,7 @@ namespace quartz::usb {
                     setup.index != 0u ||
                     setup.length != 0u ||
                     setup.value > 1u) {
-                    stallEP0();
+                    stallEndpoint(0);
                     return;
                 }
 
@@ -193,19 +258,22 @@ namespace quartz::usb {
 
                 configurationPending = true;
 
-                sendEP0ZeroLengthPacket();
+                sendEndpointZeroLengthPacket(0);
                 return;
 
             case RequestGetConfiguration:
-                sendEP0(
+                sendEndpoint(
+                    0,
                     &configuration,
-                    sizeof(configuration),
-                    setup.length
+                    std::min(
+                        sizeof(configuration),
+                        static_cast<std::size_t>(setup.length)
+                    )
                 );
                 return;
 
             default:
-                stallEP0();
+                stallEndpoint(0);
                 return;
         }
     }
@@ -220,111 +288,113 @@ namespace quartz::usb {
 
         switch (descriptorType) {
             case DescriptorDevice:
-                sendEP0(
+                sendEndpoint(
+                    0,
                     descriptors::Device.data(),
-                    descriptors::Device.size(),
-                    setup.length
+                    std::min(
+                        descriptors::Device.size(),
+                        static_cast<std::size_t>(setup.length)
+                    )
                 );
                 return;
 
             case DescriptorConfiguration:
-                sendEP0(
+                sendEndpoint(
+                    0,  
                     descriptors::Configuration.data(),
-                    descriptors::Configuration.size(),
-                    setup.length
+                    std::min(
+                        descriptors::Configuration.size(),
+                        static_cast<std::size_t>(setup.length)
+                    )
                 );
                 return;
 
             case DescriptorString:
                 switch (descriptorIndex) {
                     case 0:
-                        sendEP0(
+                        sendEndpoint(
+                            0,
                             descriptors::Language.data(),
-                            descriptors::Language.size(),
-                            setup.length
+                            std::min(
+                                descriptors::Language.size(),
+                                static_cast<std::size_t>(setup.length)
+                            )
                         );
                         return;
 
                     case 1:
-                        sendEP0(
+                        sendEndpoint(
+                            0,
                             descriptors::Manufacturer.data(),
-                            descriptors::Manufacturer.size(),
-                            setup.length
+                            std::min(
+                                descriptors::Manufacturer.size(),
+                                static_cast<std::size_t>(setup.length)
+                            )
                         );
                         return;
 
                     case 2:
-                        sendEP0(
+                        sendEndpoint(
+                            0,
                             descriptors::Product.data(),
-                            descriptors::Product.size(),
-                            setup.length
+                            std::min(
+                                descriptors::Product.size(),
+                                static_cast<std::size_t>(setup.length)
+                            )
                         );
                         return;
 
                     case 3:
-                        sendEP0(
+                        sendEndpoint(
+                            0,
                             descriptors::SerialNumber.data(),
-                            descriptors::SerialNumber.size(),
-                            setup.length
+                            std::min(
+                                descriptors::SerialNumber.size(),
+                                static_cast<std::size_t>(setup.length)
+                            )
                         );
                         return;
 
                 default:
-                    stallEP0();
+                    stallEndpoint(0);
                     return;
             }
 
             default:
-                stallEP0();
+                stallEndpoint(0);
                 return;
         }
     }
 
-    void Device::sendEP0(const std::uint8_t* data, std::uint16_t availableLength, std::uint16_t requestedLength) noexcept
+    void Device::sendEndpoint(const std::uint8_t endpoint, const std::uint8_t* data, std::size_t length) noexcept
     {
-        std::uint16_t length =
-        std::min(availableLength, requestedLength);
-
         if (length > 64u) {
             length = 64u;
         }
 
         hal::USB::writeFifo(
-            0,
+            endpoint,
             data,
             length
         );
 
-        controlState = ControlState::DataIn;
-
+        endpointStates[endpoint] = EndpointState::Busy;
+        if (endpoint == 0) {
+            ep0State = ControlState::DataIn;
+        }
         hal::USB::armInEndpoint(
-            0,
+            endpoint,
             length
         );
     }
 
-    void Device::sendEP0ZeroLengthPacket() noexcept
+    void Device::sendEndpointZeroLengthPacket(const std::uint8_t endpoint) noexcept
     {
-        controlState = ControlState::StatusIn;
-        hal::USB::armInEndpoint(0, 0);
-    }
-
-    void Device::applyConfiguration(const std::uint8_t value) noexcept
-    {
-        if (value == 0u) {
-            debug::DebugEndpoint::setConfigured(false);
-            hal::USB::disableEndpoint(4);
-            return;
+        endpointStates[endpoint] = EndpointState::Busy;
+        if (endpoint == 0) {
+            ep0State = ControlState::StatusIn;
         }
-
-        hal::USB::setEndpointDirection(4, false); // IN
-        hal::USB::enableEndpoint(4);
-
-        debug::DebugEndpoint::setConfigured(true);
-
-        debug::DebugEndpoint::writeString(
-            "Quartz debug endpoint configured\n"
-        );
+        hal::USB::armInEndpoint(endpoint, 0);
     }
 
     void Device::handleEP0In() noexcept
@@ -333,7 +403,7 @@ namespace quartz::usb {
             value(Interrupt::EP0In)
         );
 
-        switch (controlState) {
+        switch (ep0State) {
             case ControlState::DataIn:
                 /*
                 * Descriptor/data packet was acknowledged.
@@ -342,7 +412,8 @@ namespace quartz::usb {
                 * Despite the current HAL method name, EP0CTL's ACK state
                 * applies according to the token direction sent by the host.
                 */
-                controlState = ControlState::StatusOut;
+                ep0State = ControlState::StatusOut;
+                endpointStates[0] = EndpointState::Busy;
                 hal::USB::armInEndpoint(0, 0);
                 return;
 
@@ -364,15 +435,34 @@ namespace quartz::usb {
                     pendingConfiguration = 0;
                 }
 
-                controlState = ControlState::Idle;
+                ep0State = ControlState::Idle;
+                endpointStates[0] = EndpointState::Idle;
                 hal::USB::enableEndpoint(0);
                 return;
 
             default:
-                controlState = ControlState::Idle;
+                ep0State = ControlState::Idle;
+                endpointStates[0] = EndpointState::Idle;
                 hal::USB::enableEndpoint(0);
                 return;
         }
+    }
+    
+    void Device::handleEP1In() noexcept
+    {
+    }
+
+    void Device::handleEP2In() noexcept
+    {
+    }
+
+    void Device::handleEP3In() noexcept
+    {
+    }
+
+    void Device::handleEP4In() noexcept
+    {
+        debug::DebugEndpoint::handleTransmitComplete();
     }
 
     void Device::handleEP0Out() noexcept
@@ -381,8 +471,9 @@ namespace quartz::usb {
             value(Interrupt::EP0Out)
         );
 
-        if (controlState == ControlState::StatusOut) {
-            controlState = ControlState::Idle;
+        if (ep0State == ControlState::StatusOut) {
+            ep0State = ControlState::Idle;
+            endpointStates[0] = EndpointState::Idle;
             hal::USB::enableEndpoint(0);
             return;
         }
@@ -395,8 +486,54 @@ namespace quartz::usb {
         );
     }
 
-    void Device::stallEP0() noexcept
+    void Device::handleEP1Out() noexcept
     {
-        hal::USB::stallEndpoint(0);
+    }
+
+    void Device::handleEP2Out() noexcept
+    {
+    }
+
+    void Device::handleEP3Out() noexcept
+    {
+    }
+
+    void Device::handleEP4Out() noexcept
+    {
+    }
+
+    void Device::applyConfiguration(const std::uint8_t value) noexcept
+    {
+        if (value == 0u) {
+            debug::DebugEndpoint::setConfigured(false);
+            hal::USB::disableEndpoint(4);
+            return;
+        }
+
+        hal::USB::setEndpointDirection(4, false); // IN
+        hal::USB::enableEndpoint(4);
+
+        debug::DebugEndpoint::setConfigured(true);
+
+        debug::DebugEndpoint::writeString(
+            "Quartz debug endpoint configured\n"
+        );
+    }
+
+    void Device::handleEndpointIn(const std::uint8_t endpoint) noexcept
+    {
+        endpointStates[endpoint] = EndpointState::Idle;
+        endpointInHandlers[endpoint]();
+    }
+
+    void Device::handleEndpointOut(const std::uint8_t endpoint) noexcept
+    {
+        endpointStates[endpoint] = EndpointState::Idle;
+        endpointOutHandlers[endpoint]();
+    }
+
+    void Device::stallEndpoint(const std::uint8_t endpoint) noexcept
+    {
+        hal::USB::stallEndpoint(endpoint);
     }
 }

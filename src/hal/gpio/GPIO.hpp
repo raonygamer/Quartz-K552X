@@ -36,6 +36,11 @@ namespace quartz::hal {
         Output = 1
     };
 
+    enum class GPIOPull : std::uint8_t {
+        None,
+        PullUp
+    };
+
     class GPIO {
     public:
         static void setPinMode(GPIOPort port, GPIOPin pin, GPIOMode mode) noexcept;
@@ -44,6 +49,9 @@ namespace quartz::hal {
         static void togglePin(GPIOPort port, GPIOPin pin) noexcept;
         static void setPinHigh(GPIOPort port, GPIOPin pin) noexcept;
         static void setPinLow(GPIOPort port, GPIOPin pin) noexcept;
+        static void setPinPull(GPIOPort port, GPIOPin pin, GPIOPull pull) noexcept;
+        static void setPinInputBuffer(GPIOPort port, GPIOPin pin, bool enabled) noexcept;
+        static void setPinAnalog(GPIOPort port, GPIOPin pin, bool enabled) noexcept;
 
     private:
         static volatile SN_GPIO0_Type* getPort(GPIOPort port) noexcept;

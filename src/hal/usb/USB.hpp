@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
+#include <array>
 
 namespace quartz::hal {
     class USB {
@@ -29,7 +30,7 @@ namespace quartz::hal {
 
         static void armInEndpoint(std::uint8_t endpoint, std::uint16_t size) noexcept;
         static void setAddress(std::uint8_t address) noexcept;
-        static void prepareForBootloader() noexcept;
+        static void teardownForBootloader() noexcept;
 
     private:
         static volatile std::uint32_t& endpointControl(std::uint8_t endpoint) noexcept;

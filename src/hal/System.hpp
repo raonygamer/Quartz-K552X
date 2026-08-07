@@ -7,6 +7,7 @@ namespace quartz::hal {
     class System {
     public:
         static void initializeSystemTick() noexcept;
+        static void teardownEverything() noexcept;
         [[noreturn]]
         static void toBootloader() noexcept;
     };
