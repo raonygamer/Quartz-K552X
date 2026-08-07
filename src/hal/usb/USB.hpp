@@ -20,8 +20,22 @@ namespace quartz::hal {
         static std::uint32_t readFifo32(std::uint16_t offset) noexcept;
         static void writeFifo32(std::uint16_t offset, std::uint32_t value) noexcept;
 
-        static void readFifo(std::uint16_t offset, std::uint8_t* buffer, std::size_t size) noexcept;
-        static void writeFifo(std::uint16_t offset, const std::uint8_t* buffer, std::size_t size) noexcept;
+        static std::uint16_t getEndpointBufferOffset(const std::uint8_t endpoint) noexcept;
+        static std::size_t getEndpointByteCount(std::uint8_t endpoint) noexcept;
+        static void readFifoAt(std::uint16_t offset, std::uint8_t* buffer, std::size_t size) noexcept;
+        static void writeFifoAt(std::uint16_t offset, const std::uint8_t* buffer, std::size_t size) noexcept;
+
+        static void writeEndpointFifo(
+            const std::uint8_t endpoint,
+            const std::uint8_t* buffer,
+            const std::size_t size
+        ) noexcept;
+
+        static void readEndpointFifo(
+            const std::uint8_t endpoint,
+            std::uint8_t* buffer,
+            const std::size_t size
+        ) noexcept;
 
         static void enableEndpoint(std::uint8_t endpoint) noexcept;
         static void disableEndpoint(std::uint8_t endpoint) noexcept;
@@ -29,6 +43,7 @@ namespace quartz::hal {
         static void setEndpointDirection(std::uint8_t endpoint, bool out) noexcept;
 
         static void armInEndpoint(std::uint8_t endpoint, std::uint16_t size) noexcept;
+        static void armOutEndpoint(std::uint8_t endpoint) noexcept;
         static void setAddress(std::uint8_t address) noexcept;
         static void teardownForBootloader() noexcept;
 

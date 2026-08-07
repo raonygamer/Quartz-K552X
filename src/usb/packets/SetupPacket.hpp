@@ -2,6 +2,13 @@
 #include <cstdint>
 
 namespace quartz::usb {
+    enum class RequestType : std::uint8_t {
+        Standard = 0,
+        Class    = 1,
+        Vendor   = 2,
+        Reserved = 3,
+    };
+
     struct SetupPacket {
         std::uint8_t requestType;
         std::uint8_t request;
@@ -10,9 +17,11 @@ namespace quartz::usb {
         std::uint16_t length;
 
         [[nodiscard]]
-        constexpr std::uint8_t type() const noexcept
+        constexpr RequestType type() const noexcept
         {
-            return requestType & 0x60u;
+            return static_cast<RequestType>(
+                (requestType >> 5u) & 0x03u
+            );
         }
 
         [[nodiscard]]

@@ -315,7 +315,7 @@ namespace quartz::debug {
             queueIndex = (queueIndex + 1u) % QueueSize;
         }
 
-        hal::USB::writeFifo(
+        hal::USB::writeFifoAt(
             BufferOffset,
             transmitPacket,
             packetSize

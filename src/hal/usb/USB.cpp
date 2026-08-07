@@ -56,6 +56,11 @@ namespace quartz::hal {
         SN_USB->PHYPRM  = PHYParameter1;
         SN_USB->PHYPRM2 = PHYParameter2;
 
+        SN_USB->EP1BUFOS = 0x40;
+        SN_USB->EP2BUFOS = 0x80;
+        SN_USB->EP3BUFOS = 0xC0;
+        SN_USB->EP4BUFOS = 0xE0;
+
         SN_USB->CFG = USBConfig;
 
         resetBus();
@@ -117,7 +122,46 @@ namespace quartz::hal {
         }
     }
 
-    void USB::readFifo(const std::uint16_t offset, std::uint8_t* const buffer, const std::size_t size) noexcept
+    std::uint16_t USB::getEndpointBufferOffset(const std::uint8_t endpoint) noexcept
+    {
+        switch (endpoint) {
+            case 0:
+                return 0x00;
+
+            case 1:
+                return static_cast<std::uint16_t>(
+                    SN_USB->EP1BUFOS & 0xFCu
+                );
+
+            case 2:
+                return static_cast<std::uint16_t>(
+                    SN_USB->EP2BUFOS & 0xFCu
+                );
+
+            case 3:
+                return static_cast<std::uint16_t>(
+                    SN_USB->EP3BUFOS & 0xFCu
+                );
+
+            case 4:
+                return static_cast<std::uint16_t>(
+                    SN_USB->EP4BUFOS & 0xFCu
+                );
+
+            default:
+                return 0;
+        }
+    }
+
+    std::size_t USB::getEndpointByteCount(std::uint8_t endpoint) noexcept
+    {
+        if (endpoint > MaxEndpoint)
+            return 0;
+
+        return endpointControl(endpoint) & 0x7Fu;
+    }
+
+    void USB::readFifoAt(const std::uint16_t offset, std::uint8_t *const buffer, const std::size_t size) noexcept
     {
         if (buffer == nullptr || size == 0u || offset >= FifoSize) {
             return;
@@ -155,7 +199,7 @@ namespace quartz::hal {
         }
     }
 
-    void USB::writeFifo(const std::uint16_t offset, const std::uint8_t* const buffer, const std::size_t size) noexcept
+    void USB::writeFifoAt(const std::uint16_t offset, const std::uint8_t* const buffer, const std::size_t size) noexcept
     {
         if (buffer == nullptr || size == 0u || offset >= FifoSize) {
             return;
@@ -221,6 +265,38 @@ namespace quartz::hal {
         }
     }
 
+    void USB::writeEndpointFifo(
+        const std::uint8_t endpoint,
+        const std::uint8_t* buffer,
+        const std::size_t size
+    ) noexcept
+    {
+        if (endpoint > MaxEndpoint)
+            return;
+
+        writeFifoAt(
+            getEndpointBufferOffset(endpoint),
+            buffer,
+            size
+        );
+    }
+
+    void USB::readEndpointFifo(
+        const std::uint8_t endpoint,
+        std::uint8_t* buffer,
+        const std::size_t size
+    ) noexcept
+    {
+        if (endpoint > MaxEndpoint)
+            return;
+
+        readFifoAt(
+            getEndpointBufferOffset(endpoint),
+            buffer,
+            size
+        );
+    }
+
     void USB::enableEndpoint(const std::uint8_t endpoint) noexcept
     {
         if (endpoint > MaxEndpoint) {
@@ -266,12 +342,21 @@ namespace quartz::hal {
 
     void USB::armInEndpoint(const std::uint8_t endpoint, const std::uint16_t size) noexcept
     {
-        if (endpoint > MaxEndpoint) {
+        if (endpoint > MaxEndpoint || size > 0x7Fu) {
             return;
         }
 
         endpointControl(endpoint) =
             EndpointAck | static_cast<std::uint32_t>(size);
+    }
+
+    void USB::armOutEndpoint(std::uint8_t endpoint) noexcept
+    {
+        if (endpoint > MaxEndpoint) {
+            return;
+        }
+
+        endpointControl(endpoint) = EndpointAck;
     }
 
     void USB::setAddress(const std::uint8_t address) noexcept
@@ -287,7 +372,7 @@ namespace quartz::hal {
         SN_USB->INTEN = 0u;
 
         disconnect();
-        hal::HighResolutionTimer::waitMicroseconds(20);
+        hal::HighResolutionTimer::waitMilliseconds(20);
 
         SN_USB->EP0CTL = 0u;
         SN_USB->EP1CTL = 0u;

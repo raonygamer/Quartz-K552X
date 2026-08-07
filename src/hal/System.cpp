@@ -3,6 +3,7 @@
 #include "timer/Timer.hpp"
 #include "usb/USB.hpp"
 #include "debug/Panic.hpp"
+#include "kb/Matrix.hpp"
 #include "../usb/Interrupt.hpp"
 #include "../usb/Device.hpp"
 
@@ -23,6 +24,10 @@ namespace quartz::hal {
         SysTick->LOAD = 0u;
         SysTick->VAL  = 0u;
         SCB->ICSR = SCB_ICSR_PENDSTCLR_Msk;
+        SN_GPIO0->MODE = 0u;
+        SN_GPIO1->MODE = 0u;
+        SN_GPIO2->MODE = 0u;
+        SN_GPIO3->MODE = 0u;
 
         NVIC_DisableIRQ(CT16B0_IRQn);
         NVIC_ClearPendingIRQ(CT16B0_IRQn);
@@ -51,6 +56,7 @@ namespace quartz::hal {
 extern "C" void SysTick_Handler()
 {
     quartz::hal::Timer::tick();
+    quartz::kb::Matrix::scan();
 }
 
 extern "C" void USB_IRQHandler()
