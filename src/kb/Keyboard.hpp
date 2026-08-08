@@ -11,6 +11,10 @@ namespace quartz::kb {
         inline static std::uint32_t HIDTicks = 0;
         inline static std::uint32_t ScanDurationTicks = 0;
         inline static std::uint32_t ScanPeriodTicks = 0;
+        inline static std::uint64_t ScanPeriodTicksSum = 0;
+        inline static std::uint64_t ScanPeriodSamples = 0;
+        inline static std::uint32_t AverageScanRate = 0;
+        inline static std::uint32_t AverageScanPeriodTicks = 0;
 
         static void scanAndSend();
     };

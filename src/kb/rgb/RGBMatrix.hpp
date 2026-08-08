@@ -50,6 +50,10 @@ namespace quartz::kb::rgb
             return CurrentColumn;
         }
 
+        static void handOver() noexcept;
+        static bool handedOver() noexcept;
+        static void acquire() noexcept;
+
     private:
         static void configureSelectorPinsOutput() noexcept;
         static void deselectAllColumns() noexcept;

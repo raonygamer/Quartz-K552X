@@ -1,5 +1,6 @@
 #include "RGBMatrix.hpp"
 #include "debug/DebugEndpoint.hpp"
+#include "kb/ElectricalMatrix.hpp"
 extern "C" {
     #include "SN32F240B.h"
 }
@@ -14,11 +15,8 @@ namespace quartz::kb::rgb
         constexpr std::uint32_t SelectorMaskPortB = 0x03C0u; // P1.6-P1.9
 
         // CT16B1:
-        // 48 MHz / (PRE + 1) / 256
-        //
-        // PRE = 24:
-        // 48 MHz / 25 / 256 = 7.5 kHz
-        constexpr std::uint32_t PWMPrescaler = 12u;
+        // 48 MHz / (47 + 1) / 256 = 3906.25 Hz PWM frequency.
+        constexpr std::uint32_t PWMPrescaler = 47u;
         constexpr std::uint32_t PWMPeriod = 255u;
     }
 
@@ -140,7 +138,7 @@ namespace quartz::kb::rgb
 
     void RGBMatrix::preload() noexcept
     {
-        const std::uint8_t column = CurrentColumn;
+        const std::uint8_t column = 15u - CurrentColumn;
 
         const Color& row0 = Framebuffer[0][column];
         const Color& row1 = Framebuffer[1][column];
@@ -193,7 +191,7 @@ namespace quartz::kb::rgb
 
         // Select exactly one RGB column.
         // Reverse only
-        selectColumn(15u - CurrentColumn);
+        selectColumn(CurrentColumn);
 
         // Restart each RGB slot from TC=0 so brightness doesn't depend on
         // whatever phase the timer happened to be at previously.
@@ -214,6 +212,26 @@ namespace quartz::kb::rgb
 
         if (CurrentColumn >= Columns)
             CurrentColumn = 0;
+    }
+
+    void RGBMatrix::handOver() noexcept
+    {
+        if (ElectricalMatrix::Ownership == SharedOwnership::RGBMatrix)
+            ElectricalMatrix::Ownership = SharedOwnership::ScanHandOverRequest;
+    }
+
+    bool RGBMatrix::handedOver() noexcept
+    {
+        return ElectricalMatrix::Ownership == SharedOwnership::Matrix;
+    }
+
+    void RGBMatrix::acquire() noexcept
+    {
+        if (ElectricalMatrix::Ownership != SharedOwnership::Matrix) 
+            return;
+
+        ElectricalMatrix::Ownership = SharedOwnership::RGBMatrix;
+        startCurrentColumn();
     }
 
     void RGBMatrix::configureSelectorPinsOutput() noexcept
@@ -318,10 +336,11 @@ namespace quartz::kb::rgb
         SN_CT16B1->PWMIOENB = 0u;
         deselectAllColumns();
 
-        if (!Running)
-            return;
-
         advance();
+        if (ElectricalMatrix::Ownership == SharedOwnership::ScanHandOverRequest) {
+            ElectricalMatrix::Ownership = SharedOwnership::Matrix;
+            return;
+        }
 
         startCurrentColumn();
     }

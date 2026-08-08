@@ -198,38 +198,17 @@ namespace quartz::kb {
         );
     }
 
-    [[gnu::always_inline]]
-    inline void busyWaitMicroseconds(std::uint32_t microseconds) noexcept
-    {
-        if (microseconds == 0)
-            return;
-
-        asm volatile(
-            ".syntax unified\n"
-
-            "1:\n"
-
-            ".rept 44\n"
-            "nop\n"
-            ".endr\n"
-
-            "subs %0, %0, #1\n"
-            "bne 1b\n"
-
-            : "+l"(microseconds)
-            :
-            : "cc", "memory"
-        );
-    }
-
     void Matrix::scan() noexcept
     {
-        constexpr std::uint32_t SettleTicks = utils::Time::microsecondsToTicks(50);
+        constexpr std::uint32_t SettleTicks = utils::Time::microsecondsToTicks(55);
+
+        // Row 0 is ignored for some reason, so we start scanning from row 1.
+        constexpr std::uint8_t StartingRow = 1;
 
         const auto start = hal::HighResolutionTimer::rawTicks();
         Matrix::begin();
         utils::BitSet<MatrixDefinitions::Size> newKeyStates;
-        for (std::uint8_t row = 0; row < MatrixDefinitions::Rows; ++row) {
+        for (std::uint8_t row = StartingRow; row < MatrixDefinitions::Rows; ++row) {
             setRowPinValue(row, false);
             const std::uint32_t settleStart = hal::HighResolutionTimer::rawTicks();
             while (((hal::HighResolutionTimer::rawTicks() - settleStart) & 0x00FFFFFFu) < SettleTicks)
@@ -243,6 +222,7 @@ namespace quartz::kb {
         }
 
         Matrix::end();
+        kb::rgb::RGBMatrix::acquire();
 
         ScanTicks = static_cast<std::uint32_t>(hal::HighResolutionTimer::rawTicks() - start);
 

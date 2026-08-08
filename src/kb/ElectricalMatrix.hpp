@@ -2,6 +2,17 @@
 #include "MatrixDefinitions.hpp"
 
 namespace quartz::kb {
+    enum class SharedOwnership : std::uint8_t {
+        Matrix,
+        RGBMatrix,
+        ScanHandOverRequest
+    };
+
+    struct ElectricalMatrix {
+        inline static SharedOwnership Ownership = SharedOwnership::RGBMatrix;
+        inline static bool KeyScanPending = false;
+    };
+
     using Key = usb::hid::KeyboardUsage;
     inline static constexpr Key UsageMap[MatrixDefinitions::Rows][MatrixDefinitions::Cols] = {
         // Row 0 - currently unused

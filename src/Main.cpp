@@ -8,6 +8,7 @@
 #include "hal/timer/HighResolutionTimer.hpp"
 #include "kb/Matrix.hpp"
 #include "kb/rgb/RGBMatrix.hpp"
+#include "kb/ElectricalMatrix.hpp"
 #include "kb/KeyboardState.hpp"
 #include "usb/hid/KeyboardReporter.hpp"
 #include "kb/Keyboard.hpp"
@@ -30,7 +31,7 @@ namespace quartz {
             std::uint16_t Speed;
         };
 
-        constexpr std::size_t TestBallCount = 3;
+        constexpr std::size_t TestBallCount = 5;
 
         TestBall TestBalls[TestBallCount]{};
         std::uint32_t TestRandomState = 0x4B55258Du;
@@ -135,7 +136,7 @@ namespace quartz {
                     }
 
                     const auto value = static_cast<std::uint8_t>(brightness);
-                    kb::rgb::RGBMatrix::setPixel(row, column, 0, value, 0);
+                    kb::rgb::RGBMatrix::setPixel(row, column, value, 0, 0);
                 }
             }
         }
@@ -151,11 +152,7 @@ namespace quartz {
                 : ScanIntervalTicks;
 
             LastScanTicks = scanStart;
-
-            kb::rgb::RGBMatrix::pause();
             kb::Matrix::scan();
-            kb::rgb::RGBMatrix::resume();
-
             const auto hidStart = hal::HighResolutionTimer::rawTicks();
 
             if (kb::KeyboardState::anyKeyChanged()) {
@@ -167,6 +164,11 @@ namespace quartz {
 
             const auto scanEnd = hal::HighResolutionTimer::rawTicks();
             const auto scanDuration = (scanEnd - scanStart) & RawTickMask;
+
+            if (LastScanTicks != 0) {
+                ScanPeriodTicksSum += elapsed;
+                ++ScanPeriodSamples;
+            }
 
             if (elapsed != 0) {
                 ScanDurationTicks = scanDuration;
@@ -204,9 +206,15 @@ namespace quartz {
             const std::uint32_t rawTicks = hal::HighResolutionTimer::rawTicks();
             softwareTicks += (rawTicks - previousRawTicks) & RawTickMask;
             previousRawTicks = rawTicks;
-
-            if (static_cast<std::int32_t>(softwareTicks - nextScanTicks) >= 0) {
+            
+            if (!kb::ElectricalMatrix::KeyScanPending && static_cast<std::int32_t>(softwareTicks - nextScanTicks) >= 0) {
+                kb::ElectricalMatrix::KeyScanPending = true;
                 nextScanTicks += ScanIntervalTicks;
+                kb::rgb::RGBMatrix::handOver();
+            }
+
+            if (kb::ElectricalMatrix::KeyScanPending && kb::rgb::RGBMatrix::handedOver()) {
+                kb::ElectricalMatrix::KeyScanPending = false;
                 kb::Keyboard::scanAndSend();
             }
 
@@ -218,18 +226,25 @@ namespace quartz {
             if (static_cast<std::int32_t>(softwareTicks - nextPrintTicks) >= 0) {
                 nextPrintTicks += ScanPrintIntervalTicks;
 
+                if (kb::Keyboard::ScanPeriodSamples != 0) {
+                    kb::Keyboard::AverageScanPeriodTicks = static_cast<std::uint32_t>(kb::Keyboard::ScanPeriodTicksSum / kb::Keyboard::ScanPeriodSamples);
+                    kb::Keyboard::AverageScanRate = static_cast<std::uint32_t>((static_cast<std::uint64_t>(SystemCoreClock) * kb::Keyboard::ScanPeriodSamples) / kb::Keyboard::ScanPeriodTicksSum);
+                    kb::Keyboard::ScanPeriodTicksSum = 0;
+                    kb::Keyboard::ScanPeriodSamples = 0;
+                }
+
                 debug::DebugEndpoint::printf(
-                    "Begin: %u ticks, Scan: %u ticks, End: %u ticks, State: %u ticks, HID: %u ticks, Total: %u ticks, Period: %u ticks, CPU: %u.%u%%, Rate: %u Hz\n",
+                    "Begin: %u ticks, Scan: %u ticks, End: %u ticks, State: %u ticks, HID: %u ticks, Total: %u ticks, Period: %u/avg ticks, CPU: %u.%u%%, Rate: %u Hz/avg\n",
                     kb::Matrix::BeginScanTicks,
                     kb::Matrix::ScanTicks,
                     kb::Matrix::EndScanTicks,
                     kb::Keyboard::StateUpdateTicks,
                     kb::Keyboard::HIDTicks,
                     kb::Keyboard::ScanDurationTicks,
-                    kb::Keyboard::ScanPeriodTicks,
+                    kb::Keyboard::AverageScanPeriodTicks,
                     kb::Keyboard::CPUScanUsage / 100,
                     kb::Keyboard::CPUScanUsage % 100,
-                    kb::Keyboard::ScanRate
+                    kb::Keyboard::AverageScanRate
                 );
             }
 
