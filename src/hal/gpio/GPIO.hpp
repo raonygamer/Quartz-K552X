@@ -44,8 +44,11 @@ namespace quartz::hal {
     class GPIO {
     public:
         static void setPinMode(GPIOPort port, GPIOPin pin, GPIOMode mode) noexcept;
+        static void setPortMode(GPIOPort port, std::uint32_t mask, GPIOMode mode) noexcept;
         static void setPinValue(GPIOPort port, GPIOPin pin, bool high) noexcept;
+        static void setPortValue(GPIOPort port, std::uint32_t mask, bool high) noexcept;
         static bool getPinValue(GPIOPort port, GPIOPin pin) noexcept;
+        static uint32_t getPortValue(GPIOPort port) noexcept;
         static void togglePin(GPIOPort port, GPIOPin pin) noexcept;
         static void setPinHigh(GPIOPort port, GPIOPin pin) noexcept;
         static void setPinLow(GPIOPort port, GPIOPin pin) noexcept;

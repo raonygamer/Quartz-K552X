@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "usb/hid/BootKeyboardReport.hpp"
+#include "usb/hid/NKROKeyboardReport.hpp"
 
 namespace quartz::usb::descriptors {
     struct HIDKeyboard {
@@ -13,10 +14,14 @@ namespace quartz::usb::descriptors {
         static constexpr std::uint8_t EndpointAddress = 0x81;
 
         static constexpr std::uint16_t MaxPacketSize =
-            sizeof(hid::BootKeyboardReport);
+            sizeof(hid::NKROKeyboardReport) >
+            sizeof(hid::BootKeyboardReport)
+                ? sizeof(hid::NKROKeyboardReport)
+                : sizeof(hid::BootKeyboardReport);
 
-        inline static constexpr std::array<std::uint8_t, 65>
-            ReportDescriptor = {
+        static_assert(MaxPacketSize <= 64);
+
+        inline static constexpr auto ReportDescriptor = std::to_array<std::uint8_t>({
             // Usage Page (Generic Desktop)
             0x05, 0x01,
 
@@ -54,19 +59,25 @@ namespace quartz::usb::descriptors {
             0x75, 0x03,
             0x91, 0x01, // Output (Constant)
 
-            // Six ordinary key usages
-            0x95, 0x06,       // Report Count (6)
-            0x75, 0x08,       // Report Size (8)
-            0x15, 0x00,       // Logical Minimum (0)
-            0x26, 0xA4, 0x00, // Logical Maximum (0xA4)
-            0x05, 0x07,       // Usage Page (Keyboard)
-            0x19, 0x00,       // Usage Minimum (0)
-            0x2A, 0xA4, 0x00, // Usage Maximum (0xA4)
-            0x81, 0x00,       // Input (Data, Array, Absolute)
+            // NKRO bitmap
+            0x05, 0x07, // Usage Page (Keyboard)
+            0x15, 0x00, // Logical Minimum (0)
+            0x25, 0x01, // Logical Maximum (1)
+            0x75, 0x01, // Report Size (1)
+
+            // Bits 0x00..0x03: unused/reserved
+            0x95, 0x04, // Report Count (4)
+            0x81, 0x01, // Input (Constant)
+
+            // Bits 0x04..0x87
+            0x19, 0x04, // Usage Minimum (A)
+            0x29, 0x87, // Usage Maximum (International1)
+            0x95, 0x84, // 132 usages
+            0x81, 0x02, // Input (Data, Variable, Absolute)
 
             // End Collection
             0xC0,
-        };
+        });
 
         inline static constexpr std::array<std::uint8_t, 9>
             Descriptor = {

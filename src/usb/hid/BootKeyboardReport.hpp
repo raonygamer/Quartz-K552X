@@ -3,7 +3,7 @@
 #include <array>
 
 namespace quartz::usb::hid {
-    struct BootKeyboardReport {
+    struct __attribute__((packed)) BootKeyboardReport {
         static constexpr std::size_t KeySlots = 6;
 
         std::uint8_t Modifiers {};

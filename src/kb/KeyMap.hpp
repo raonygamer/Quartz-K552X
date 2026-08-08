@@ -115,9 +115,9 @@ namespace quartz::kb {
                 KeyAction::hid(K::Period),           // 10
                 KeyAction::hid(K::Slash),            // 11 ; :
                 KeyAction::hid(K::International1),   // 12 / ?
-                KeyAction::hid(K::RightShift),       // 13
+                KeyAction::none(),                   // 13
                 KeyAction::hid(K::UpArrow),          // 14
-                KeyAction::none(),                   // 15
+                KeyAction::hid(K::RightShift),       // 15
             },
 
             // Row 4 - home row

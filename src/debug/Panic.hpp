@@ -17,13 +17,26 @@ namespace quartz::debug {
         };
     private:
         __attribute__((section(".noinit")))
-        static inline State state;
+        static inline State state = {
+            0u, // MagicNumber
+            0u, // ProgramCounter
+            0u, // LinkRegister
+            0u, // StackPointer
+            0u  // PanicCount
+        };
+        __attribute__((section(".noinit")))
+        static inline bool nextRebootIsBootloader = false;
 
     public:
+        static void setNextRebootIsBootloader(bool isBootloader) noexcept;
         static void captureState() noexcept;
         static void blinkDebuggingLeds(std::uint16_t delayMs, std::uint8_t count) noexcept;
         static void setDebuggingLedState(bool on) noexcept;
         static void triggerHardFault() noexcept;
+
+        static bool isNextRebootBootloader() noexcept {
+            return nextRebootIsBootloader;
+        }
 
         static void incrementPanicCount() noexcept {
             state.PanicCount++;

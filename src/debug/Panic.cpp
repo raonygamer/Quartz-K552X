@@ -3,6 +3,11 @@
 #include "hal/timer/HighResolutionTimer.hpp"
 
 namespace quartz::debug {
+    void Panic::setNextRebootIsBootloader(bool isBootloader) noexcept
+    {
+        nextRebootIsBootloader = isBootloader;
+    }
+
     void Panic::captureState() noexcept
     {
         state.MagicNumber = State::Magic;

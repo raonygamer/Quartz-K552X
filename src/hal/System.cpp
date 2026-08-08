@@ -51,12 +51,22 @@ namespace quartz::hal {
 
         __builtin_unreachable();
     }
+
+    void System::reset() noexcept
+    {
+        quartz::hal::HighResolutionTimer::waitMilliseconds(100);
+        quartz::debug::Panic::blinkDebuggingLeds(25, 10);
+        teardownEverything();
+        quartz::hal::HighResolutionTimer::waitMilliseconds(100);
+        quartz::debug::Panic::setDebuggingLedState(false);
+        NVIC_SystemReset();
+        __builtin_unreachable();
+    }
 }
 
 extern "C" void SysTick_Handler()
 {
     quartz::hal::Timer::tick();
-    quartz::kb::Matrix::scan();
 }
 
 extern "C" void USB_IRQHandler()

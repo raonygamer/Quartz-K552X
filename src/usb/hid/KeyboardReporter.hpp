@@ -3,28 +3,49 @@
 #include "BootKeyboardReport.hpp"
 
 namespace quartz::usb::hid {
-    inline BootKeyboardReport PendingReport {};
+    inline BootKeyboardReport PendingBootKeyboard {};
+    inline NKROKeyboardReport PendingReportKeyboard {};
     inline bool ReportDirty = false;
+    inline hid::Protocol LastProtocol = hid::Protocol::Boot;
 
-    inline void updateReport(const BootKeyboardReport& report) noexcept
+    inline void markDirty() noexcept
     {
-        PendingReport = report;
         ReportDirty = true;
     }
 
     inline void service() noexcept
     {
-        if (!ReportDirty)
-            return;
-
-        if (Device::isEndpointBusy(1))
-            return;
-
         if (!Device::isConfigured())
             return;
 
-        if (Device::sendKeyboardReport(PendingReport)) {
-            ReportDirty = false;
+        const auto protocol = Device::getHIDProtocol();
+
+        if (protocol != LastProtocol) {
+            LastProtocol = protocol;
+            ReportDirty = true;
         }
+
+        if (!ReportDirty)
+            return;
+
+        if (Device::isEndpointBusy(descriptors::HIDKeyboard::EndpointNumber))
+            return;
+
+        bool sent = false;
+
+        switch (protocol) {
+            case Protocol::Boot:
+                PendingBootKeyboard = kb::KeyboardState::buildBootReport();
+                sent = Device::sendBootKeyboard(PendingBootKeyboard);
+                break;
+
+            case Protocol::Report:
+                PendingReportKeyboard = kb::KeyboardState::buildNKROReport();
+                sent = Device::sendReportKeyboard(PendingReportKeyboard);
+                break;
+        }
+
+        if (sent)
+            ReportDirty = false;
     }
 }

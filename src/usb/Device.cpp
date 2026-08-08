@@ -8,8 +8,13 @@
 #include "hal/usb/USB.hpp"
 #include "hal/gpio/GPIO.hpp"
 #include "debug/DebugEndpoint.hpp"
+#include "debug/Panic.hpp"
 #include "hal/timer/HighResolutionTimer.hpp"
 #include "kb/KeyboardState.hpp"
+#include "hal/System.hpp"
+
+#include "hid/BootKeyboardReport.hpp"
+#include "hid/NKROKeyboardReport.hpp"
 
 namespace quartz::usb {
     namespace {
@@ -34,6 +39,14 @@ namespace quartz::usb {
         constexpr std::uint8_t HIDInterface = 0;
         constexpr std::uint8_t HIDSetReport = 0x09;
         constexpr std::uint8_t HIDReportTypeOutput = 0x02;
+        constexpr std::uint8_t HIDReportTypeFeature = 0x03;
+
+        inline std::array<std::uint8_t, 64> HIDFeatureBuffer {};
+        inline bool BootloaderRebootPending = false;
+        constexpr std::array<std::uint8_t, 8> SonixRebootMagic = {
+            0xAA, 0x55, 0xA5, 0x5A,
+            0xFF, 0x00, 0x33, 0xCC,
+        };
     }
 
     std::array<void(*)(), hal::USB::MaxEndpoint + 1> Device::endpointInHandlers {
@@ -60,10 +73,11 @@ namespace quartz::usb {
         configurationPending = false;
         configuration = 0;
         ep0State = ControlState::Idle;
-        hidProtocol = HIDReportProtocol;
+        hidProtocol = hid::Protocol::Report;
         hidIdleRate = 0;
         inTransfers = {};
         outTransfers = {};
+        controlOutType = ControlOutType::None;
         endpointStates = {
             EndpointState::Idle,
             EndpointState::Idle,
@@ -102,7 +116,49 @@ namespace quartz::usb {
         return true;
     }
 
-    bool Device::sendKeyboardReport(const hid::BootKeyboardReport &report) noexcept
+    bool Device::handleSonixRebootCommand(const std::uint8_t* data, const std::size_t length) noexcept
+    {
+        if (length != SonixRebootMagic.size())
+            return false;
+
+        for (std::size_t i = 0; i < SonixRebootMagic.size(); ++i) {
+            if (data[i] != SonixRebootMagic[i])
+                return false;
+        }
+
+        BootloaderRebootPending = true;
+        return true;
+    }
+
+    void Device::handleVendorCommand(const std::uint8_t* data, const std::size_t length) noexcept
+    {
+        if (handleSonixRebootCommand(data, length))
+            return;
+    }
+
+    hid::Protocol Device::getHIDProtocol() noexcept
+    {
+        return hidProtocol;
+    }
+
+    bool Device::sendBootKeyboard(const hid::BootKeyboardReport &report) noexcept
+    {
+        constexpr std::uint8_t endpoint = 1;
+        if (!isConfigured() ||
+            isEndpointBusy(endpoint)) {
+            return false;
+        }
+
+        sendEndpoint(
+            endpoint,
+            reinterpret_cast<const std::uint8_t*>(&report),
+            sizeof(report)
+        );
+
+        return true;
+    }
+
+    bool Device::sendReportKeyboard(const hid::NKROKeyboardReport& report) noexcept
     {
         constexpr std::uint8_t endpoint = 1;
         if (!isConfigured() ||
@@ -178,10 +234,11 @@ namespace quartz::usb {
         configurationPending = false;
         configuration = 0;
         ep0State = ControlState::Idle;
-        hidProtocol = HIDReportProtocol;
+        hidProtocol = hid::Protocol::Report;
         hidIdleRate = 0;
         inTransfers = {};
         outTransfers = {};
+        controlOutType = ControlOutType::None;
         endpointStates = {
             EndpointState::Idle,
             EndpointState::Idle,
@@ -365,9 +422,7 @@ namespace quartz::usb {
                     return;
                 }
 
-                hidProtocol =
-                    static_cast<std::uint8_t>(setup.value);
-
+                hidProtocol = static_cast<hid::Protocol>(setup.value);
                 sendEndpointZeroLengthPacket(0);
                 return;
             }
@@ -380,7 +435,7 @@ namespace quartz::usb {
 
                 sendControlResponse(
                     setup,
-                    &hidProtocol,
+                    reinterpret_cast<std::uint8_t*>(&hidProtocol),
                     sizeof(hidProtocol)
                 );
                 return;
@@ -391,25 +446,56 @@ namespace quartz::usb {
                     return;
                 }
 
-                HIDReportCount++;
-
-                const std::uint8_t reportType =
+                const auto reportType =
                     static_cast<std::uint8_t>(setup.value >> 8);
 
-                const std::uint8_t reportId =
+                const auto reportId =
                     static_cast<std::uint8_t>(setup.value);
 
-                if (reportType != HIDReportTypeOutput ||
-                    reportId != 0 ||
-                    setup.length != 1) {
+                if (reportId != 0) {
                     stallEndpoint(0);
                     return;
                 }
 
-                if (!beginControlOutTransfer(&kb::KeyboardLEDState::Raw, sizeof(kb::KeyboardLEDState::Raw))) {
-                    stallEndpoint(0);
+                if (reportType == HIDReportTypeOutput) {
+                    if (setup.length != 1) {
+                        stallEndpoint(0);
+                        return;
+                    }
+
+                    controlOutType = ControlOutType::HIDOutputReport;
+
+                    if (!beginControlOutTransfer(
+                            &kb::KeyboardState::CurrentLEDState.Raw,
+                            1))
+                    {
+                        controlOutType = ControlOutType::None;
+                        stallEndpoint(0);
+                    }
+
+                    return;
                 }
 
+                if (reportType == HIDReportTypeFeature) {
+                    if (setup.length > featureReportBuffer.size()) {
+                        stallEndpoint(0);
+                        return;
+                    }
+
+                    controlOutType = ControlOutType::HIDFeatureReport;
+
+                    if (!beginControlOutTransfer(
+                            featureReportBuffer.data(),
+                            setup.length))
+                    {
+                        controlOutType = ControlOutType::None;
+                        stallEndpoint(0);
+                    }
+
+                    return;
+                }
+
+                stallEndpoint(0);
                 return;
             }
 
@@ -624,6 +710,13 @@ namespace quartz::usb {
                 ep0State = ControlState::Idle;
                 endpointStates[0] = EndpointState::Idle;
                 hal::USB::enableEndpoint(0);
+
+                if (BootloaderRebootPending) {
+                    BootloaderRebootPending = false;
+                    debug::Panic::setNextRebootIsBootloader(true);
+                    hal::System::reset();
+                    __builtin_unreachable();
+                }
                 return;
 
             default:
@@ -718,13 +811,24 @@ namespace quartz::usb {
                     return;
                 }
 
-                //
-                // DATA OUT complete.
-                // Now device sends zero-length IN status packet.
-                //
-                sendEndpointZeroLengthPacket(0);
+                switch (controlOutType) {
+                    case ControlOutType::HIDOutputReport:
+                        handleHIDOutputReport();
+                        break;
 
-                handleHIDOutputReport();
+                    case ControlOutType::HIDFeatureReport:
+                        handleVendorCommand(
+                            featureReportBuffer.data(),
+                            transfer.Offset
+                        );
+                        break;
+
+                    case ControlOutType::None:
+                        break;
+                }
+
+                // Complete SET_REPORT successfully first.
+                sendEndpointZeroLengthPacket(0);
                 return;
             }
 
@@ -737,8 +841,8 @@ namespace quartz::usb {
     void Device::handleHIDOutputReport() noexcept
     {
         HIDOutputReportCount++;
-        hal::GPIO::setPinValue(hal::GPIOPort::B, hal::GPIOPin::PIN14, kb::KeyboardLEDState::capsLock());
-        hal::GPIO::setPinValue(hal::GPIOPort::B, hal::GPIOPin::PIN15, kb::KeyboardLEDState::scrollLock());
+        hal::GPIO::setPinValue(hal::GPIOPort::B, hal::GPIOPin::PIN14, kb::KeyboardState::CurrentLEDState.capsLock());
+        hal::GPIO::setPinValue(hal::GPIOPort::B, hal::GPIOPin::PIN15, kb::KeyboardState::CurrentLEDState.scrollLock());
     }
 
     void Device::handleEP1Out() noexcept

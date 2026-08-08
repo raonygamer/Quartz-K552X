@@ -7,6 +7,11 @@ namespace quartz::kb {
     struct GPIOPinSet {
         hal::GPIOPort Port;
         hal::GPIOPin Pin;
+
+        std::uint32_t getMask() const noexcept
+        {
+            return (1u << static_cast<std::uint32_t>(Pin));
+        }
     };
 
     class Matrix {
@@ -14,7 +19,7 @@ namespace quartz::kb {
         constexpr static std::uint8_t Rows = 7;
         constexpr static std::uint8_t Cols = 16;
         constexpr static std::uint8_t Size = Rows * Cols;
-        using ColumnBitSet = utils::BitSet<Cols>;
+        using ColumnBitSet = std::array<std::uint8_t, (Cols / 8)>;
 
         constexpr static GPIOPinSet RowPins[Rows] = {
             { hal::GPIOPort::C, hal::GPIOPin::PIN13 },
@@ -45,24 +50,31 @@ namespace quartz::kb {
             { hal::GPIOPort::B, hal::GPIOPin::PIN9  }
         };
 
-        static utils::BitSet<Size> LastRawKeyStates;
-        static utils::BitSet<Size> RawKeyStates;
-        static utils::BitSet<Size> LastStableKeyStates;
-        static utils::BitSet<Size> StableKeyStates;
-        static std::array<std::uint8_t, Size> DebounceCounters;
-        constexpr static std::uint8_t DebounceThreshold = 5;
+        static std::uint32_t BeginScanTime;
+        static std::uint32_t ScanTime;
+        static std::uint32_t EndScanTime;
 
         static std::size_t getKeyIndex(const uint8_t row, const uint8_t col) noexcept
         {
-            return static_cast<std::size_t>(col) * Rows + row;
+            return static_cast<std::size_t>(row) * Cols + col;
+        }
+
+        static utils::MatrixPosition getKeyPosition(const std::size_t index) noexcept
+        {
+            return utils::MatrixPosition {
+                static_cast<std::uint8_t>(index / Cols),
+                static_cast<std::uint8_t>(index % Cols)
+            };
         }
 
         static void initialize() noexcept;
         static void setRowPinsMode(const hal::GPIOMode mode) noexcept;
         static void setRowPinValue(const std::uint8_t row, const bool high) noexcept;
+        static void setAllRowPinsValue(const bool high) noexcept;
         static void setColPinsMode(const hal::GPIOMode mode, const hal::GPIOPull pull) noexcept;
-        static ColumnBitSet readColPins() noexcept;
+        static void readColPins(ColumnBitSet& states) noexcept;
+        static void begin() noexcept;
         static void scan() noexcept;
-        static void debounce() noexcept;
+        static void end() noexcept;
     };
 }

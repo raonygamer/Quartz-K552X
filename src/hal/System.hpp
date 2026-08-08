@@ -10,6 +10,8 @@ namespace quartz::hal {
         static void teardownEverything() noexcept;
         [[noreturn]]
         static void toBootloader() noexcept;
+        [[noreturn]]
+        static void reset() noexcept;
     };
 }
 

@@ -6,10 +6,12 @@
 #include "packets/SetupPacket.hpp"
 #include "hal/usb/USB.hpp"
 #include "Descriptors.hpp"
+#include "hid/HIDProtocol.hpp"
 
 namespace quartz::usb {
     namespace hid {
         struct BootKeyboardReport;
+        struct NKROKeyboardReport;
     }
 
     enum class EndpointState : std::uint8_t {
@@ -25,16 +27,21 @@ namespace quartz::usb {
         StatusIn
     };
 
+    enum class ControlOutType : std::uint8_t {
+        None,
+        HIDOutputReport,
+        HIDFeatureReport,
+    };
+
     namespace {
         constexpr std::uint8_t HIDReportProtocol = 1;
     };
 
     class Device {
     public:
-    
         static constexpr std::array<std::size_t, 5> EndpointMaxPacket = {
             64, // EP0
-            8,  // EP1 HID
+            32,  // EP1 HID
             64, // EP2 unused
             64, // EP3 unused
             32, // EP4 debug
@@ -45,7 +52,9 @@ namespace quartz::usb {
         static bool isEndpointBusy(std::uint8_t endpoint) noexcept;
         static bool isConfigured() noexcept;
         static bool waitUntilConfigured(const std::uint64_t timeoutMilliseconds = 200) noexcept;
-        static bool sendKeyboardReport(const hid::BootKeyboardReport& report) noexcept;
+        static hid::Protocol getHIDProtocol() noexcept;
+        static bool sendBootKeyboard(const hid::BootKeyboardReport& report) noexcept;
+        static bool sendReportKeyboard(const hid::NKROKeyboardReport& report) noexcept;
 
     private:
         struct InTransfer {
@@ -100,8 +109,8 @@ namespace quartz::usb {
         static inline bool configurationPending = false;
         static inline std::uint8_t configuration = 0;
         static inline ControlState ep0State = ControlState::Idle;
-        static inline std::uint8_t hidProtocol = HIDReportProtocol;
         static inline std::uint8_t hidIdleRate = 0;
+        static inline hid::Protocol hidProtocol = hid::Protocol::Boot;
         static inline std::array<EndpointState, hal::USB::MaxEndpoint + 1> endpointStates = {
             EndpointState::Idle,
             EndpointState::Idle,
@@ -109,6 +118,9 @@ namespace quartz::usb {
             EndpointState::Idle,
             EndpointState::Idle
         };
+
+        inline static ControlOutType controlOutType = ControlOutType::None;
+        inline static std::array<std::uint8_t, 64> featureReportBuffer {};
 
         static std::array<void(*)(), hal::USB::MaxEndpoint + 1> endpointInHandlers;
         static std::array<void(*)(), hal::USB::MaxEndpoint + 1> endpointOutHandlers;
@@ -124,6 +136,8 @@ namespace quartz::usb {
 
         static void applyConfiguration(const std::uint8_t value) noexcept;
 
+        static bool handleSonixRebootCommand(const std::uint8_t* data, const std::size_t length) noexcept;
+        static void handleVendorCommand(const std::uint8_t* data, const std::size_t length) noexcept;
         static void handleStandardRequest(const SetupPacket& setup) noexcept;
         static void handleClassRequest(const SetupPacket& setup) noexcept;
         static void handleGetDescriptor(const SetupPacket& setup) noexcept;

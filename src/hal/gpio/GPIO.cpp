@@ -55,12 +55,30 @@ namespace quartz::hal {
             gpioPort->MODE &= ~mask;
     }
 
+    void GPIO::setPortMode(GPIOPort port, std::uint32_t mask, GPIOMode mode) noexcept
+    {
+        auto* gpioPort = getPort(port);
+        if (mode == GPIOMode::Output)
+            gpioPort->MODE |= mask;
+        else
+            gpioPort->MODE &= ~mask;
+    }
+
     void GPIO::setPinValue(GPIOPort port, GPIOPin pin, bool high) noexcept
     {
         if (high)
             setPinHigh(port, pin);
         else
             setPinLow(port, pin);
+    }
+
+    void GPIO::setPortValue(GPIOPort port, std::uint32_t mask, bool high) noexcept
+    {
+        auto* gpioPort = getPort(port);
+        if (high)
+            gpioPort->BSET = mask;
+        else
+            gpioPort->BCLR = mask;
     }
 
     void GPIO::setPinHigh(GPIOPort port, GPIOPin pin) noexcept
@@ -86,6 +104,12 @@ namespace quartz::hal {
     {
         auto* gpio = getPort(port);
         return (gpio->DATA & (1u << static_cast<std::uint8_t>(pin))) != 0;
+    }
+
+    uint32_t GPIO::getPortValue(GPIOPort port) noexcept
+    {
+        auto* gpio = getPort(port);
+        return gpio->DATA;
     }
 
     void GPIO::setPinPull(GPIOPort port, GPIOPin pin, GPIOPull pull) noexcept 

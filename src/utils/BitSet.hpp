@@ -2,18 +2,27 @@
 #include <cstdint>
 #include <cstddef>
 #include <array>
-#include "Position2D.hpp"
+#include "MatrixPosition.hpp"
 
 namespace quartz::utils {
     template <std::size_t Size>
     class BitSet {
     public:
-        std::array<std::uint8_t, (Size + 7) / 8> data{};
+        std::array<std::uint8_t, (Size + 7) / 8> data = {};
 
         void zero() noexcept
         {
             for (std::size_t i = 0; i < data.size(); ++i) {
                 data[i] = 0u;
+            }
+        }
+
+        template<std::size_t N>
+        void setUnsafe(const std::uint8_t* src, const std::size_t index) noexcept
+        {
+            auto* bytePtr = this->data.data() + index;
+            for (std::size_t i = 0; i < N; ++i) {
+                *bytePtr++ = src[i];
             }
         }
 
@@ -93,26 +102,11 @@ namespace quartz::utils {
             return false;
         }
 
-        void cloneInto(BitSet<Size>& other) noexcept
+        void cloneInto(BitSet<Size>& other) const noexcept
         {
             for (std::size_t i = 0; i < data.size(); ++i) {
                 other.data[i] = data[i];
             }
-        }
-
-        std::size_t firstOnePositions(Position2D* buffer, std::size_t maxPositions, Position2D(*matrixConversor)(std::size_t)) const noexcept
-        {
-            if (!matrixConversor) {
-                return 0;
-            }
-
-            std::size_t count = 0;
-            for (std::size_t index = 0; index < Size && count < maxPositions; ++index) {
-                if (test(index)) {
-                    buffer[count++] = matrixConversor(index);
-                }
-            }
-            return count;
         }
     };
 }
