@@ -12,7 +12,7 @@ namespace quartz::hal {
     {
         const std::uint32_t startTick = CurrentTick;
         while ((CurrentTick - startTick) < ms) {
-            __WFI(); // Wait for interrupt to save power while waiting
+            __NOP(); // Wait for interrupt to save power while waiting
         }
     }
 }

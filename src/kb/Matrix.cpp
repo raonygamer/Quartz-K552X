@@ -227,15 +227,11 @@ namespace quartz::kb {
         constexpr std::uint32_t SettleTicks = utils::Time::microsecondsToTicks(50);
 
         const auto start = hal::HighResolutionTimer::rawTicks();
-        rgb::RGBMatrix::disable();
         Matrix::begin();
         utils::BitSet<MatrixDefinitions::Size> newKeyStates;
         for (std::uint8_t row = 0; row < MatrixDefinitions::Rows; ++row) {
             setRowPinValue(row, false);
             const std::uint32_t settleStart = hal::HighResolutionTimer::rawTicks();
-            if (row == 0)
-                rgb::RGBMatrix::preload();
-
             while (((hal::HighResolutionTimer::rawTicks() - settleStart) & 0x00FFFFFFu) < SettleTicks)
                 __NOP();
 
@@ -247,9 +243,6 @@ namespace quartz::kb {
         }
 
         Matrix::end();
-
-        rgb::RGBMatrix::advance();
-        rgb::RGBMatrix::enable();
 
         ScanTicks = static_cast<std::uint32_t>(hal::HighResolutionTimer::rawTicks() - start);
 

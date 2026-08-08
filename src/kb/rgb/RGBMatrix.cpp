@@ -1,4 +1,5 @@
 #include "RGBMatrix.hpp"
+#include "debug/DebugEndpoint.hpp"
 extern "C" {
     #include "SN32F240B.h"
 }
@@ -15,10 +16,9 @@ namespace quartz::kb::rgb
         // CT16B1:
         // 48 MHz / (PRE + 1) / 256
         //
-        // PRE = 47:
-        // 48 MHz / 48 / 256 = 3.90625 kHz
-        // one complete PWM cycle ~= 262.144 us.
-        constexpr std::uint32_t PWMPrescaler = 47u;
+        // PRE = 24:
+        // 48 MHz / 25 / 256 = 7.5 kHz
+        constexpr std::uint32_t PWMPrescaler = 12u;
         constexpr std::uint32_t PWMPeriod = 255u;
     }
 
@@ -53,9 +53,11 @@ namespace quartz::kb::rgb
         SN_CT16B1->MCTRL = 0u;
         SN_CT16B1->MCTRL2 = 0u;
 
-        // MR24RST. Automatically reset TC at the end of every PWM cycle.
-        // No MR24 interrupt and no MR24STOP.
-        SN_CT16B1->MCTRL3 = (1u << 13);
+        // MR24IE | MR24STOP.
+        //
+        // Run exactly one PWM ramp, stop at MR24 and interrupt.
+        // The ISR will move to the next RGB column and restart it.
+        SN_CT16B1->MCTRL3 = (1u << 12) | (1u << 14);
 
         // Reset TC + PC.
         SN_CT16B1->TMRCTRL = (1u << 1);
@@ -70,6 +72,9 @@ namespace quartz::kb::rgb
 
         // Leave RGB disabled. Whoever owns the matrix scheduler decides
         // when the first visible RGB phase begins.
+
+        NVIC_ClearPendingIRQ(CT16B1_IRQn);
+        NVIC_EnableIRQ(CT16B1_IRQn);
     }
 
     void RGBMatrix::clear() noexcept
@@ -247,4 +252,82 @@ namespace quartz::kb::rgb
         // col15 -> P1.9
         SN_GPIO1->BCLR = (1u << (column - 6u));
     }
+
+    void RGBMatrix::startCurrentColumn() noexcept
+    {
+        configureSelectorPinsOutput();
+        deselectAllColumns();
+
+        preload();
+
+        // Use whichever direction you've settled on.
+        selectColumn(15u - CurrentColumn);
+
+        // Reset TC + PC.
+        SN_CT16B1->TMRCTRL = (1u << 1);
+        while (SN_CT16B1->TMRCTRL & (1u << 1)) {
+        }
+
+        // Clear any stale MR24 interrupt.
+        SN_CT16B1->IC = (1u << 24);
+
+        // Start this PWM slot.
+        SN_CT16B1->TMRCTRL = 1u;
+
+        // Expose PWM only after everything is ready.
+        SN_CT16B1->PWMIOENB = PWMOutputMask;
+    }
+
+    void RGBMatrix::pause() noexcept
+    {
+        Running = false;
+
+        // Prevent CT16B1 from touching the selector pins while Matrix owns them.
+        NVIC_DisableIRQ(CT16B1_IRQn);
+
+        SN_CT16B1->PWMIOENB = 0u;
+        SN_CT16B1->TMRCTRL = 0u;
+
+        SN_CT16B1->IC = (1u << 24);
+        NVIC_ClearPendingIRQ(CT16B1_IRQn);
+
+        deselectAllColumns();
+    }
+
+    void RGBMatrix::resume() noexcept
+    {
+        // Matrix::end() has already relinquished the shared pins.
+        Running = true;
+
+        SN_CT16B1->IC = (1u << 24);
+        NVIC_ClearPendingIRQ(CT16B1_IRQn);
+
+        startCurrentColumn();
+
+        NVIC_EnableIRQ(CT16B1_IRQn);
+    }
+
+    void RGBMatrix::handleInterrupt() noexcept
+    {
+        if ((SN_CT16B1->RIS & (1u << 24)) == 0u)
+            return;
+
+        SN_CT16B1->IC = (1u << 24);
+
+        // Timer has already stopped because MR24STOP is set.
+        SN_CT16B1->PWMIOENB = 0u;
+        deselectAllColumns();
+
+        if (!Running)
+            return;
+
+        advance();
+
+        startCurrentColumn();
+    }
+}
+
+extern "C" void CT16B1_IRQHandler()
+{
+    quartz::kb::rgb::RGBMatrix::handleInterrupt();
 }

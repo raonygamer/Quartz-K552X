@@ -43,6 +43,18 @@ namespace quartz {
             return TestRandomState;
         }
 
+        static std::uint32_t RandomState = 0xA341316Cu;
+
+        static inline std::uint32_t random32() noexcept
+        {
+            std::uint32_t x = RandomState;
+            x ^= x << 13;
+            x ^= x >> 17;
+            x ^= x << 5;
+            RandomState = x;
+            return x;
+        }
+
         void randomizeTestBall(TestBall& ball) noexcept
         {
             ball.Row = static_cast<std::uint8_t>(testRandom() % kb::rgb::RGBMatrix::Rows);
@@ -123,7 +135,7 @@ namespace quartz {
                     }
 
                     const auto value = static_cast<std::uint8_t>(brightness);
-                    kb::rgb::RGBMatrix::setPixel(row, column, value, value, value);
+                    kb::rgb::RGBMatrix::setPixel(row, column, 0, value, 0);
                 }
             }
         }
@@ -139,7 +151,10 @@ namespace quartz {
                 : ScanIntervalTicks;
 
             LastScanTicks = scanStart;
+
+            kb::rgb::RGBMatrix::pause();
             kb::Matrix::scan();
+            kb::rgb::RGBMatrix::resume();
 
             const auto hidStart = hal::HighResolutionTimer::rawTicks();
 
@@ -181,9 +196,10 @@ namespace quartz {
         std::uint32_t nextAnimationTicks = AnimationIntervalTicks;
 
 
-        //kb::rgb::RGBMatrix::fill(255, 0, 255);
+        //kb::rgb::RGBMatrix::fill(255, 0, 0);
         initializeTestAnimation();
         updateTestAnimation();
+        kb::rgb::RGBMatrix::resume();
         for (;;) {
             const std::uint32_t rawTicks = hal::HighResolutionTimer::rawTicks();
             softwareTicks += (rawTicks - previousRawTicks) & RawTickMask;

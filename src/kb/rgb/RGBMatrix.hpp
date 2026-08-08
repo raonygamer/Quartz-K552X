@@ -29,6 +29,10 @@ namespace quartz::kb::rgb
 
         static Color getPixel(std::uint8_t row, std::uint8_t column) noexcept;
 
+        static void pause() noexcept;
+        static void resume() noexcept;
+        static void handleInterrupt() noexcept;
+
         // Blank RGB immediately. Shared selector GPIOs may then be taken by Matrix.
         static void disable() noexcept;
 
@@ -50,7 +54,8 @@ namespace quartz::kb::rgb
         static void configureSelectorPinsOutput() noexcept;
         static void deselectAllColumns() noexcept;
         static void selectColumn(std::uint8_t column) noexcept;
-
+        static void startCurrentColumn() noexcept;
+        static inline bool Running = false;
         inline static Color Framebuffer[Rows][Columns]{};
         inline static std::uint8_t CurrentColumn = 0;
     };

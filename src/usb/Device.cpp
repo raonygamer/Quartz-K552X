@@ -110,7 +110,7 @@ namespace quartz::usb {
             if ((hal::HighResolutionTimer::nowTicks() - start) >= timeout)
                 return false;
 
-            __WFI();
+            __NOP();
         }
 
         return true;
