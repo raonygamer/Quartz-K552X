@@ -120,3 +120,7 @@ namespace quartz::usb::hid {
         Kana       = 1u << 4,
     };
 }
+
+namespace quartz::kb {
+    using Key = quartz::usb::hid::KeyboardUsage;
+}

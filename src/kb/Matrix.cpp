@@ -1,147 +1,271 @@
 #include "kb/Matrix.hpp"
 #include "kb/KeyboardState.hpp"
+#include "kb/Keyboard.hpp"
 #include "hal/timer/HighResolutionTimer.hpp"
-#include "debug/DebugEndpoint.hpp"
-#include "usb/hid/BootKeyboardReport.hpp"
-#include "utils/MatrixPosition.hpp"
-#include "usb/hid/KeyboardReporter.hpp"
-#include "Matrix.hpp"
+#include "utils/Time.hpp"
+#include "rgb/RGBMatrix.hpp"
+
+extern "C" {
+    #include "SN32F240B.h"
+}
 
 namespace quartz::kb {
-    std::uint32_t Matrix::BeginScanTime = 0;
-    std::uint32_t Matrix::ScanTime = 0;
-    std::uint32_t Matrix::EndScanTime = 0;
+    namespace {
 
-    void Matrix::initialize() noexcept {
-        BeginScanTime = 0;
-        ScanTime = 0;
-        EndScanTime = 0;
+        // GPIO mapping:
+        // hal A = GPIO0
+        // hal B = GPIO1
+        // hal C = GPIO2
+        // hal D = GPIO3
+
+        constexpr std::uint32_t RowMaskC = 0xA000u; // C13, C15
+        constexpr std::uint32_t RowMaskD = 0x0F80u; // D7-D11
+
+        constexpr std::uint32_t ColMaskC = 0x1FFBu; // C0,C1,C3-C12
+        constexpr std::uint32_t ColMaskB = 0x03C0u; // B6-B9
+
+        //
+        // Each GPIO CFG field is two bits:
+        //
+        //   00 = pull-up
+        //   10 = inactive/no pull, Schmitt enabled
+        //
+        // Convert a 16-bit pin mask into the corresponding 32-bit
+        // collection of two-bit CFG fields.
+        //
+        constexpr std::uint32_t expandCFGMask(const std::uint32_t pinMask) noexcept
+        {
+            std::uint32_t result = 0;
+
+            for (std::uint32_t pin = 0; pin < 16; ++pin) {
+                if ((pinMask & (1u << pin)) != 0) {
+                    result |= 0x3u << (pin * 2u);
+                }
+            }
+
+            return result;
+        }
+
+        constexpr std::uint32_t makeCFGValue(const std::uint32_t pinMask, const std::uint32_t value) noexcept
+        {
+            std::uint32_t result = 0;
+
+            for (std::uint32_t pin = 0; pin < 16; ++pin) {
+                if ((pinMask & (1u << pin)) != 0) {
+                    result |= (value & 0x3u) << (pin * 2u);
+                }
+            }
+
+            return result;
+        }
+
+        constexpr std::uint32_t ColCFGMaskC = expandCFGMask(ColMaskC);
+        constexpr std::uint32_t ColCFGMaskB = expandCFGMask(ColMaskB);
+        constexpr std::uint32_t ColCFGInactiveC = makeCFGValue(ColMaskC, 0b10u);
+        constexpr std::uint32_t ColCFGInactiveB = makeCFGValue(ColMaskB, 0b10u);
+
+    }
+
+    std::uint32_t Matrix::BeginScanTicks = 0;
+    std::uint32_t Matrix::ScanTicks = 0;
+    std::uint32_t Matrix::EndScanTicks = 0;
+    std::uint32_t Matrix::RowWaitingTicks = 0;
+
+    void Matrix::initialize() noexcept
+    {
+        BeginScanTicks = 0;
+        ScanTicks = 0;
+        EndScanTicks = 0;
     }
 
     void Matrix::setRowPinsMode(const hal::GPIOMode mode) noexcept
     {
-        hal::GPIO::setPortMode(hal::GPIOPort::C, 0b1010000000000000, mode); // C13, C15
-        hal::GPIO::setPortMode(hal::GPIOPort::D, 0b0000111111100000, mode); // D7-D11
+        if (mode == hal::GPIOMode::Output) {
+            SN_GPIO2->MODE |= RowMaskC;
+            SN_GPIO3->MODE |= RowMaskD;
+        } else {
+            SN_GPIO2->MODE &= ~RowMaskC;
+            SN_GPIO3->MODE &= ~RowMaskD;
+        }
     }
 
     void Matrix::setRowPinValue(const std::uint8_t row, const bool high) noexcept
     {
-        if (row >= Rows) {
+        if (row >= MatrixDefinitions::Rows) {
             return;
         }
 
         const GPIOPinSet& pinSet = RowPins[row];
-        hal::GPIO::setPinValue(pinSet.Port, pinSet.Pin, high);
+        const std::uint32_t mask = pinSet.getMask();
+
+        if (pinSet.Port == hal::GPIOPort::C) {
+            if (high) {
+                SN_GPIO2->BSET = mask;
+            } else {
+                SN_GPIO2->BCLR = mask;
+            }
+
+            return;
+        }
+
+        // Rows only live on C and D.
+        if (high) {
+            SN_GPIO3->BSET = mask;
+        } else {
+            SN_GPIO3->BCLR = mask;
+        }
     }
 
     void Matrix::setAllRowPinsValue(const bool high) noexcept
     {
-        // C - 0b1010000000000000
-        // D - 0b0000111111100000
-        hal::GPIO::setPortValue(hal::GPIOPort::C, 0b1010000000000000, high);
-        hal::GPIO::setPortValue(hal::GPIOPort::D, 0b0000111111100000, high);
+        if (high) {
+            SN_GPIO2->BSET = RowMaskC;
+            SN_GPIO3->BSET = RowMaskD;
+        } else {
+            SN_GPIO2->BCLR = RowMaskC;
+            SN_GPIO3->BCLR = RowMaskD;
+        }
     }
 
     void Matrix::setColPinsMode(const hal::GPIOMode mode, const hal::GPIOPull pull) noexcept
     {
-        // constexpr static GPIOPinSet ColPins[Cols] = {
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN0  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN1  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN3  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN4  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN5  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN6  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN7  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN8  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN9  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN10 },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN11 },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN12 },
-        //     { hal::GPIOPort::B, hal::GPIOPin::PIN6  },
-        //     { hal::GPIOPort::B, hal::GPIOPin::PIN7  },
-        //     { hal::GPIOPort::B, hal::GPIOPin::PIN8  },
-        //     { hal::GPIOPort::B, hal::GPIOPin::PIN9  }
-        // };
+        if (mode == hal::GPIOMode::Output) {
+            SN_GPIO2->MODE |= ColMaskC;
+            SN_GPIO1->MODE |= ColMaskB;
+        } else {
+            SN_GPIO2->MODE &= ~ColMaskC;
+            SN_GPIO1->MODE &= ~ColMaskB;
+        }
 
-        hal::GPIO::setPortMode(hal::GPIOPort::C, 0b0001111111111011, mode); // C0, C1, C3-C12
-        hal::GPIO::setPortMode(hal::GPIOPort::B, 0b0000001111000000, mode); // B6-B9
-        for (std::uint8_t col = 0; col < Cols; ++col) {
-            const GPIOPinSet& pinSet = ColPins[col];
-            hal::GPIO::setPinPull(pinSet.Port, pinSet.Pin, pull);
+        //
+        // CFG is TWO bits per GPIO.
+        //
+        // PullUp = 00
+        // None   = 10 (inactive, Schmitt enabled)
+        //
+        if (pull == hal::GPIOPull::PullUp) {
+            SN_GPIO2->CFG &= ~ColCFGMaskC;
+            SN_GPIO1->CFG &= ~ColCFGMaskB;
+        } else {
+            SN_GPIO2->CFG =
+                (SN_GPIO2->CFG & ~ColCFGMaskC) |
+                ColCFGInactiveC;
+
+            SN_GPIO1->CFG =
+                (SN_GPIO1->CFG & ~ColCFGMaskB) |
+                ColCFGInactiveB;
         }
     }
 
-    void Matrix::readColPins(ColumnBitSet& states) noexcept
+    std::uint16_t Matrix::readColPins() noexcept
     {
-        // constexpr static GPIOPinSet ColPins[Cols] = {
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN0  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN1  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN3  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN4  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN5  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN6  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN7  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN8  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN9  },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN10 },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN11 },
-        //     { hal::GPIOPort::C, hal::GPIOPin::PIN12 },
-        //     { hal::GPIOPort::B, hal::GPIOPin::PIN6  },
-        //     { hal::GPIOPort::B, hal::GPIOPin::PIN7  },
-        //     { hal::GPIOPort::B, hal::GPIOPin::PIN8  },
-        //     { hal::GPIOPort::B, hal::GPIOPin::PIN9  }
-        // };
+        //
+        // Matrix inputs are active-low.
+        //
+        const std::uint32_t portC = ~SN_GPIO2->DATA & ColMaskC;
+        const std::uint32_t portB = ~SN_GPIO1->DATA & ColMaskB;
 
-        uint32_t maskC = 0b0001111111111011; // C0, C1, C3-C12
-        uint32_t maskB = 0b0000001111000000; // B6-B9
-        uint32_t portC = hal::GPIO::getPortValue(hal::GPIOPort::C) & maskC;
-        uint32_t portB = hal::GPIO::getPortValue(hal::GPIOPort::B) & maskB;
-
-        for (std::uint8_t col = 0; col < Cols; ++col) {
-            const GPIOPinSet& pinSet = ColPins[col];
-            bool isHigh = false;
-            if (pinSet.Port == hal::GPIOPort::C) {
-                isHigh = (portC & pinSet.getMask()) != 0;
-            } else if (pinSet.Port == hal::GPIOPort::B) {
-                isHigh = (portB & pinSet.getMask()) != 0;
-            }
-            if (!isHigh) {
-                states[col / 8] |= (1 << (col % 8));
-            }
-        }
+        //
+        // Physical:
+        //
+        // C0  -> bit 0
+        // C1  -> bit 1
+        // C3  -> bit 2
+        // ...
+        // C12 -> bit 11
+        //
+        // B6  -> bit 12
+        // B7  -> bit 13
+        // B8  -> bit 14
+        // B9  -> bit 15
+        //
+        return static_cast<std::uint16_t>(
+            (portC & 0x0003u) |
+            ((portC >> 1u) & 0x0FFCu) |
+            ((portB << 6u) & 0xF000u)
+        );
     }
 
     void Matrix::begin() noexcept
     {
-        auto start = hal::HighResolutionTimer::nowMicroseconds();
+        const auto start = hal::HighResolutionTimer::rawTicks();
         setRowPinsMode(hal::GPIOMode::Output);
         setColPinsMode(hal::GPIOMode::Input, hal::GPIOPull::PullUp);
         setAllRowPinsValue(true);
-        BeginScanTime = static_cast<std::uint32_t>(hal::HighResolutionTimer::nowMicroseconds() - start);
+        BeginScanTicks = static_cast<std::uint32_t>(
+            hal::HighResolutionTimer::rawTicks() -
+            start
+        );
+    }
+
+    [[gnu::always_inline]]
+    inline void busyWaitMicroseconds(std::uint32_t microseconds) noexcept
+    {
+        if (microseconds == 0)
+            return;
+
+        asm volatile(
+            ".syntax unified\n"
+
+            "1:\n"
+
+            ".rept 44\n"
+            "nop\n"
+            ".endr\n"
+
+            "subs %0, %0, #1\n"
+            "bne 1b\n"
+
+            : "+l"(microseconds)
+            :
+            : "cc", "memory"
+        );
     }
 
     void Matrix::scan() noexcept
     {
-        auto start = hal::HighResolutionTimer::nowMicroseconds();
-        utils::BitSet<Size> newKeyStates;
-        for (std::uint8_t row = 0; row < Rows; ++row) {
+        constexpr std::uint32_t SettleTicks = utils::Time::microsecondsToTicks(50);
+
+        const auto start = hal::HighResolutionTimer::rawTicks();
+        rgb::RGBMatrix::disable();
+        Matrix::begin();
+        utils::BitSet<MatrixDefinitions::Size> newKeyStates;
+        for (std::uint8_t row = 0; row < MatrixDefinitions::Rows; ++row) {
             setRowPinValue(row, false);
-            hal::HighResolutionTimer::waitMicroseconds(35); // Allow signals to stabilize
-            ColumnBitSet colStates {};
-            readColPins(colStates);
-            newKeyStates.setUnsafe<2U>(colStates.data(), row * 2U);
+            const std::uint32_t settleStart = hal::HighResolutionTimer::rawTicks();
+            if (row == 0)
+                rgb::RGBMatrix::preload();
+
+            while (((hal::HighResolutionTimer::rawTicks() - settleStart) & 0x00FFFFFFu) < SettleTicks)
+                __NOP();
+
+            newKeyStates.setUnsafeU16(
+                readColPins(),
+                static_cast<std::size_t>(row) * 2U
+            );
             setRowPinValue(row, true);
         }
 
-        ScanTime = static_cast<std::uint32_t>(hal::HighResolutionTimer::nowMicroseconds() - start);
+        Matrix::end();
+
+        rgb::RGBMatrix::advance();
+        rgb::RGBMatrix::enable();
+
+        ScanTicks = static_cast<std::uint32_t>(hal::HighResolutionTimer::rawTicks() - start);
+
+        const auto updateStart = hal::HighResolutionTimer::rawTicks();
         kb::KeyboardState::updateKeyStates(newKeyStates);
+        kb::Keyboard::StateUpdateTicks = static_cast<std::uint32_t>(hal::HighResolutionTimer::rawTicks() - updateStart);
     }
 
     void Matrix::end() noexcept
     {
-        auto start = hal::HighResolutionTimer::nowMicroseconds();
+        const auto start = hal::HighResolutionTimer::rawTicks();
         setColPinsMode(hal::GPIOMode::Input, hal::GPIOPull::None);
         setRowPinsMode(hal::GPIOMode::Input);
-        EndScanTime = static_cast<std::uint32_t>(hal::HighResolutionTimer::nowMicroseconds() - start);
+        EndScanTicks = static_cast<std::uint32_t>(
+            hal::HighResolutionTimer::rawTicks() -
+            start
+        );
     }
 }

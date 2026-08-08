@@ -2,6 +2,7 @@
 #include <cstdint>
 #include "utils/BitSet.hpp"
 #include "Matrix.hpp"
+#include "MatrixDefinitions.hpp"
 #include "usb/hid/BootKeyboardReport.hpp"
 #include "usb/hid/NKROKeyboardReport.hpp"
 
@@ -31,12 +32,14 @@ namespace quartz::kb {
     class KeyboardState {
     public:
         static LEDState CurrentLEDState;
-        static utils::BitSet<Matrix::Size> CurrentKeyStates;
-        static utils::BitSet<Matrix::Size> LastKeyStates;
+        static utils::BitSet<MatrixDefinitions::Size> CurrentKeyStates;
+        static utils::BitSet<MatrixDefinitions::Size> LastKeyStates;
 
-        static void debounce(const utils::BitSet<Matrix::Size>& rawStates) noexcept;
-        static void updateKeyStates(const utils::BitSet<Matrix::Size>& rawStates) noexcept;
+        static void debounce(const utils::BitSet<MatrixDefinitions::Size>& rawStates) noexcept;
+        static void updateKeyStates(const utils::BitSet<MatrixDefinitions::Size>& rawStates) noexcept;
         static bool anyKeyChanged() noexcept;
+        static bool isKeyDown(const quartz::usb::hid::KeyboardUsage usage);
+        static bool isFunctionPressed() noexcept;
         static usb::hid::BootKeyboardReport buildBootReport() noexcept;
         static usb::hid::NKROKeyboardReport buildNKROReport() noexcept;
     };

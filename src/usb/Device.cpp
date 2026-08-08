@@ -713,8 +713,8 @@ namespace quartz::usb {
 
                 if (BootloaderRebootPending) {
                     BootloaderRebootPending = false;
-                    debug::Panic::setNextRebootIsBootloader(true);
-                    hal::System::reset();
+                    //debug::Panic::setNextRebootIsBootloader(true);
+                    hal::System::toBootloader();
                     __builtin_unreachable();
                 }
                 return;

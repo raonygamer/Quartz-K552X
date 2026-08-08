@@ -17,6 +17,12 @@ namespace quartz::utils {
             }
         }
 
+        void setUnsafeU16(const std::uint16_t src, const std::size_t index) noexcept
+        {
+            auto* bytePtr = this->data.data() + index;
+            *reinterpret_cast<std::uint16_t*>(bytePtr) = src;
+        }
+
         template<std::size_t N>
         void setUnsafe(const std::uint8_t* src, const std::size_t index) noexcept
         {

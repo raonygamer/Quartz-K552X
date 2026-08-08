@@ -1,8 +1,9 @@
 #include "usb/hid/KeyboardUsage.hpp"
+#include "MatrixDefinitions.hpp"
 
 namespace quartz::kb {
     using Key = usb::hid::KeyboardUsage;
-    inline static constexpr Key UsageMap[Rows][Cols] = {
+    inline static constexpr Key UsageMap[MatrixDefinitions::Rows][MatrixDefinitions::Cols] = {
         // Row 0 - currently unused
         {
             Key::None, Key::None, Key::None, Key::None,

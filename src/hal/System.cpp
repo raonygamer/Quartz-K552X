@@ -66,7 +66,7 @@ namespace quartz::hal {
 
 extern "C" void SysTick_Handler()
 {
-    quartz::hal::Timer::tick();
+    //quartz::hal::Timer::tick();
 }
 
 extern "C" void USB_IRQHandler()

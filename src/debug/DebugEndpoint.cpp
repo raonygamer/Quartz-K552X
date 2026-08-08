@@ -109,6 +109,30 @@ namespace quartz::debug {
                 false
             );
         }
+
+        void appendLong(
+            FormatBuffer& output,
+            std::int64_t value,
+            const std::uint32_t base,
+            const bool uppercase
+        ) noexcept
+        {
+            const char* digits = uppercase
+                ? "0123456789ABCDEF"
+                : "0123456789abcdef";
+
+            char temporary[32];
+            std::size_t length = 0u;
+
+            do {
+                temporary[length++] = digits[value % base];
+                value /= base;
+            } while (value != 0u);
+
+            while (length != 0u) {
+                output.append(temporary[--length]);
+            }
+        }
     }
 
 
@@ -245,6 +269,19 @@ namespace quartz::debug {
                     appendUnsigned(
                         output,
                         static_cast<std::uint32_t>(value),
+                        10u,
+                        false
+                    );
+                    break;
+                }
+
+                case 'l': {
+                    const unsigned long long value =
+                        va_arg(arguments, unsigned long long);
+
+                    appendLong(
+                        output,
+                        static_cast<std::uint64_t>(value),
                         10u,
                         false
                     );

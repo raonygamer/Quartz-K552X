@@ -100,12 +100,8 @@ namespace quartz::hal
 
         while (elapsed < ticks) {
             const std::uint32_t current = readHardwareTicks();
-
-            elapsed +=
-                (current - previous) & 0x00FFFFFFu;
-
+            elapsed += (current - previous) & 0x00FFFFFFu;
             previous = current;
-
             __NOP();
         }
     }

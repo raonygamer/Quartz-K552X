@@ -1,46 +1,35 @@
 #include "KeyboardState.hpp"
 #include "KeyMap.hpp"
 #include "usb/hid/KeyboardReporter.hpp"
+#include "ElectricalMatrix.hpp"
 
 namespace quartz::kb {
     LEDState KeyboardState::CurrentLEDState = {};
-    utils::BitSet<Matrix::Size> KeyboardState::CurrentKeyStates = {};
-    utils::BitSet<Matrix::Size> KeyboardState::LastKeyStates = {};
+    utils::BitSet<MatrixDefinitions::Size> KeyboardState::CurrentKeyStates = {};
+    utils::BitSet<MatrixDefinitions::Size> KeyboardState::LastKeyStates = {};
+    static constexpr std::size_t MatrixBytes = (MatrixDefinitions::Size + 7U) / 8U;
+    static utils::BitSet<MatrixDefinitions::Size> History[4]{};
+    static std::uint8_t HistoryIndex = 0;
 
-    void KeyboardState::debounce(const utils::BitSet<Matrix::Size>& rawStates) noexcept
+    void KeyboardState::debounce(const utils::BitSet<MatrixDefinitions::Size>& rawStates) noexcept
     {
-        static constexpr std::uint8_t DebounceThreshold = 3;
-        static std::array<std::uint8_t, Matrix::Size> DebounceCounters {};
+        rawStates.cloneInto(History[HistoryIndex]);
+        HistoryIndex = (HistoryIndex + 1U) & 3U;
 
-        auto& states = CurrentKeyStates;
-        for (std::size_t index = 0; index < Matrix::Size; ++index) {
-            const bool raw = rawStates.test(index);
-            const bool stable = states.test(index);
+        auto* current = CurrentKeyStates.data.data();
+        const auto* h0 = History[0].data.data();
+        const auto* h1 = History[1].data.data();
+        const auto* h2 = History[2].data.data();
+        const auto* h3 = History[3].data.data();
 
-            // Electrical state agrees with our accepted state.
-            if (raw == stable) {
-                DebounceCounters[index] = 0;
-                continue;
-            }
-
-            // Raw state is trying to change.
-            auto& counter = DebounceCounters[index];
-
-            if (++counter < DebounceThreshold)
-                continue;
-
-            // It remained changed for Threshold consecutive scans:
-            // accept it.
-            if (raw)
-                states.set(index);
-            else
-                states.clear(index);
-
-            counter = 0;
+        for (std::size_t i = 0; i < MatrixBytes; ++i) {
+            const std::uint8_t pressed = h0[i] & h1[i] & h2[i] & h3[i];
+            const std::uint8_t released = static_cast<std::uint8_t>(~(h0[i] | h1[i] | h2[i] | h3[i]));
+            current[i] = static_cast<std::uint8_t>((current[i] | pressed) & ~released);
         }
     }
 
-    void KeyboardState::updateKeyStates(const utils::BitSet<Matrix::Size>& rawStates) noexcept
+    void KeyboardState::updateKeyStates(const utils::BitSet<MatrixDefinitions::Size>& rawStates) noexcept
     {
         CurrentKeyStates.cloneInto(LastKeyStates);
         debounce(rawStates);
@@ -51,10 +40,26 @@ namespace quartz::kb {
         return !CurrentKeyStates.equals(LastKeyStates);
     }
 
+    bool KeyboardState::isKeyDown(const quartz::usb::hid::KeyboardUsage usage)
+    {
+        const auto position = KeyMap::getMatrixPosition(usage);
+        if (!position.isValid())
+            return false;
+
+        const auto index = Matrix::getKeyIndex(position.Row, position.Col);
+        return CurrentKeyStates.test(index);
+    }
+
+    bool KeyboardState::isFunctionPressed() noexcept
+    {
+        const auto index = Matrix::getKeyIndex(kb::FnRow, kb::FnCol);
+        return CurrentKeyStates.test(index);
+    }
+
     usb::hid::BootKeyboardReport KeyboardState::buildBootReport() noexcept
     {
         usb::hid::BootKeyboardReport report = {};
-        for (std::size_t index = 0; index < Matrix::Size; ++index) {
+        for (std::size_t index = 0; index < MatrixDefinitions::Size; ++index) {
             if (!CurrentKeyStates.test(index))
                 continue;
 
@@ -69,7 +74,7 @@ namespace quartz::kb {
     usb::hid::NKROKeyboardReport KeyboardState::buildNKROReport() noexcept
     {
         usb::hid::NKROKeyboardReport report;
-        for (std::size_t index = 0; index < Matrix::Size; ++index) {
+        for (std::size_t index = 0; index < MatrixDefinitions::Size; ++index) {
             if (!CurrentKeyStates.test(index))
                 continue;
 

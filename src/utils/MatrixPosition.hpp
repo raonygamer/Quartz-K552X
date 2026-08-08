@@ -11,5 +11,10 @@ namespace quartz::utils {
             Col(col) 
         {
         }
+
+        constexpr bool isValid() const noexcept
+        {
+            return Row >= 0 && Col >= 0;
+        }
     };
 }
