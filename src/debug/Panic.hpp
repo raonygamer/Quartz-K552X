@@ -9,6 +9,29 @@ extern "C" {
 
 namespace quartz::debug {
     class Panic {
+    public:
+        enum class Reason : std::uint16_t {
+            NONE                  = 0x0000,
+            FAULT_TRIGGERED       = 0x0001,
+            ENDPT_OFF_NALIGN      = 0x0002,
+            ENDPT_SZ_NALIGN       = 0x0003,
+            ENDPT_NIN_CFG         = 0x0004,
+            ENDPT_NOUT_CFG        = 0x0005,
+            USB_RREG_BUSY         = 0x0006,
+            USB_WREG_BUSY         = 0x0007,
+            ENDPT_READ_NUL_BUF    = 0x0008,
+            ENDPT_WRITE_NUL_BUF   = 0x0009,
+            ENDPT_READ_SZ_EXCEED  = 0x000A,
+            ENDPT_WRITE_SZ_EXCEED = 0x000B,
+            ENDPT_INARM_SZ_EXCEED = 0x000C,
+            ENDPT_EP0_OFFSET      = 0x000D,
+            ENDPT_INVALID_NUM     = 0x000E,
+            ENDPT_SRAM_EXCEED     = 0x000F,
+            ENDPT_SZ_EXCEED       = 0x0010,
+            ENDPT_INVALID         = 0x0011,
+            ENDPT_NON0_DIR_BOTH   = 0x0012,
+        };
+
         struct State {
             static constexpr std::uint64_t Magic = 0x515A504E4E505A51;
 
@@ -17,7 +40,7 @@ namespace quartz::debug {
             std::uint32_t LinkRegister;
             std::uint32_t StackPointer;
             std::uint32_t PanicCount;
-            const char* PanicReason[32];
+            Reason PanicReason;
         };
 
         struct Controllers {
@@ -125,16 +148,14 @@ namespace quartz::debug {
         }
 
         [[gnu::always_inline]]
-        inline static void assertFailed(const char* reason) noexcept {
-            const auto len = std::max(sizeof(state.PanicReason) - 1, strlen(reason));
-            memcpy(state.PanicReason, reason, len);
-            state.PanicReason[len - 1] = '\0';
+        inline static void assertFailed(const Reason reason) noexcept {
+            state.PanicReason = reason;
             assertFailed();
         }
     };
 }
 
-#define HARD_ASSERTM(condition, reason) \
+#define HARD_ASSERTC(condition, reason) \
     do { \
         if (!(condition)) { \
             ::quartz::debug::Panic::assertFailed(reason); \
@@ -147,3 +168,7 @@ namespace quartz::debug {
             ::quartz::debug::Panic::assertFailed(); \
         } \
     } while (false)
+
+namespace {
+    using PanicReason = quartz::debug::Panic::Reason;
+}
