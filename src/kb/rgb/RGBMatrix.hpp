@@ -1,33 +1,27 @@
 #pragma once
-
 #include <cstddef>
 #include <cstdint>
+#include "utils/Color32.hpp"
 
 namespace quartz::kb::rgb
 {
     class RGBMatrix
     {
     public:
-        struct Color
-        {
-            std::uint8_t R;
-            std::uint8_t G;
-            std::uint8_t B;
-        };
-
         static constexpr std::size_t Rows = 7;
         static constexpr std::size_t Columns = 16;
 
         static void initialize() noexcept;
 
         static void clear() noexcept;
-        static void fill(Color color) noexcept;
+        static void fill(utils::Color32 color) noexcept;
         static void fill(std::uint8_t r, std::uint8_t g, std::uint8_t b) noexcept;
 
-        static void setPixel(std::uint8_t row, std::uint8_t column, Color color) noexcept;
+        static void setPixel(std::uint8_t row, std::uint8_t column, utils::Color32 color) noexcept;
         static void setPixel(std::uint8_t row, std::uint8_t column, std::uint8_t r, std::uint8_t g, std::uint8_t b) noexcept;
+        static void setFramebuffer(const utils::Color32* colors, std::size_t count) noexcept;
 
-        static Color getPixel(std::uint8_t row, std::uint8_t column) noexcept;
+        static utils::Color32 getPixel(std::uint8_t row, std::uint8_t column) noexcept;
 
         static void pause() noexcept;
         static void resume() noexcept;
@@ -60,7 +54,7 @@ namespace quartz::kb::rgb
         static void selectColumn(std::uint8_t column) noexcept;
         static void startCurrentColumn() noexcept;
         static inline bool Running = false;
-        inline static Color Framebuffer[Rows][Columns]{};
+        inline static utils::Color32 Framebuffer[Rows][Columns]{};
         inline static std::uint8_t CurrentColumn = 0;
     };
 }

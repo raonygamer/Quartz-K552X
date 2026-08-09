@@ -41,10 +41,10 @@ namespace quartz::usb {
     public:
         static constexpr std::array<std::size_t, 5> EndpointMaxPacket = {
             64, // EP0
-            32,  // EP1 HID
+            32, // EP1 HID
             64, // EP2 unused
-            64, // EP3 unused
-            32, // EP4 debug
+            32, // EP3 rpc
+            32, // EP4 rpc
         };
 
         static void initialize() noexcept;
@@ -55,6 +55,7 @@ namespace quartz::usb {
         static hid::Protocol getHIDProtocol() noexcept;
         static bool sendBootKeyboard(const hid::BootKeyboardReport& report) noexcept;
         static bool sendReportKeyboard(const hid::NKROKeyboardReport& report) noexcept;
+        static bool sendRPCData(const std::uint8_t* data, const std::size_t length) noexcept;
 
     private:
         struct InTransfer {
@@ -184,8 +185,9 @@ namespace quartz::usb {
                 case 1:
                     return descriptors::HIDKeyboard::MaxPacketSize; // 8
 
+                case 3:
                 case 4:
-                    return descriptors::Debug::MaxPacketSize; // 32
+                    return descriptors::RPC::MaxPacketSize;
 
                 default:
                     return 0;

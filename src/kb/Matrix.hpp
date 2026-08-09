@@ -48,11 +48,6 @@ namespace quartz::kb {
             { hal::GPIOPort::B, hal::GPIOPin::PIN9  }
         };
 
-        static std::uint32_t BeginScanTicks;
-        static std::uint32_t ScanTicks;
-        static std::uint32_t EndScanTicks;
-        static std::uint32_t RowWaitingTicks;
-
         static std::size_t getKeyIndex(const uint8_t row, const uint8_t col) noexcept
         {
             return static_cast<std::size_t>(row) * MatrixDefinitions::Cols + col;

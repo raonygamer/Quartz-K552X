@@ -2,6 +2,9 @@
 #include <cstdint>
 #include <cstddef>
 #include <array>
+extern "C" {
+    #include "SN32F240B.h"
+}
 
 namespace quartz::hal {
     class USB {
@@ -49,5 +52,11 @@ namespace quartz::hal {
 
     private:
         static volatile std::uint32_t& endpointControl(std::uint8_t endpoint) noexcept;
+        inline static volatile std::uint8_t* usbSram() noexcept
+        {
+            return reinterpret_cast<volatile std::uint8_t*>(
+                reinterpret_cast<std::uintptr_t>(SN_USB) + 0x100u
+            );
+        }
     };
 }

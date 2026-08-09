@@ -334,82 +334,82 @@ namespace quartz::debug {
     
     void DebugEndpoint::pump() noexcept
     {
-        if (!configured || transmitting || count == 0u) {
-            return;
-        }
+        // if (!configured || transmitting || count == 0u) {
+        //     return;
+        // }
 
-        const std::size_t packetSize =
-            count < MaxPacketSize
-                ? count
-                : MaxPacketSize;
+        // const std::size_t packetSize =
+        //     count < MaxPacketSize
+        //         ? count
+        //         : MaxPacketSize;
 
-        std::size_t queueIndex = tail;
+        // std::size_t queueIndex = tail;
 
-        for (std::size_t index = 0u;
-            index < packetSize;
-            ++index) {
-            transmitPacket[index] = queue[queueIndex];
-            queueIndex = (queueIndex + 1u) % QueueSize;
-        }
+        // for (std::size_t index = 0u;
+        //     index < packetSize;
+        //     ++index) {
+        //     transmitPacket[index] = queue[queueIndex];
+        //     queueIndex = (queueIndex + 1u) % QueueSize;
+        // }
 
-        hal::USB::writeFifoAt(
-            BufferOffset,
-            transmitPacket,
-            packetSize
-        );
+        // hal::USB::writeFifoAt(
+        //     BufferOffset,
+        //     transmitPacket,
+        //     packetSize
+        // );
 
-        pendingSize = packetSize;
-        transmitting = true;
+        // pendingSize = packetSize;
+        // transmitting = true;
 
-        hal::USB::armInEndpoint(
-            Endpoint,
-            static_cast<std::uint16_t>(packetSize)
-        );
+        // hal::USB::armInEndpoint(
+        //     Endpoint,
+        //     static_cast<std::uint16_t>(packetSize)
+        // );
     }
 
     void DebugEndpoint::handleTransmitComplete() noexcept
     {
-        if (!transmitting) {
-            return;
-        }
+        // if (!transmitting) {
+        //     return;
+        // }
 
-        tail = (tail + pendingSize) % QueueSize;
-        count -= pendingSize;
+        // tail = (tail + pendingSize) % QueueSize;
+        // count -= pendingSize;
 
-        pendingSize = 0u;
-        transmitting = false;
+        // pendingSize = 0u;
+        // transmitting = false;
 
-        pump();
+        // pump();
     }
 
     void DebugEndpoint::reset() noexcept
     {
-        const std::uint32_t interruptState =
-            enterCriticalSection();
+        // const std::uint32_t interruptState =
+        //     enterCriticalSection();
 
-        head = 0u;
-        tail = 0u;
-        count = 0u;
-        pendingSize = 0u;
+        // head = 0u;
+        // tail = 0u;
+        // count = 0u;
+        // pendingSize = 0u;
 
-        configured = false;
-        transmitting = false;
-        droppedBytes = 0u;
+        // configured = false;
+        // transmitting = false;
+        // droppedBytes = 0u;
 
-        leaveCriticalSection(interruptState);
+        // leaveCriticalSection(interruptState);
     }
 
     void DebugEndpoint::setConfigured(const bool newConfigured) noexcept
     {
-        configured = newConfigured;
+        // configured = newConfigured;
 
-        if (!configured) {
-            transmitting = false;
-            pendingSize = 0u;
-            return;
-        }
+        // if (!configured) {
+        //     transmitting = false;
+        //     pendingSize = 0u;
+        //     return;
+        // }
 
-        pump();
+        // pump();
     }
 
     std::uint32_t DebugEndpoint::getDroppedByteCount() noexcept

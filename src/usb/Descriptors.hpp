@@ -6,8 +6,10 @@
 #include "usb/hid/BootKeyboardReport.hpp"
 #include "usb/hid/NKROKeyboardReport.hpp"
 
-namespace quartz::usb::descriptors {
-    struct HIDKeyboard {
+namespace quartz::usb::descriptors
+{
+    struct HIDKeyboard
+    {
         static constexpr std::uint8_t InterfaceNumber = 0;
 
         static constexpr std::uint8_t EndpointNumber  = 1;
@@ -21,72 +23,72 @@ namespace quartz::usb::descriptors {
 
         static_assert(MaxPacketSize <= 64);
 
-        inline static constexpr auto ReportDescriptor = std::to_array<std::uint8_t>({
-            // Usage Page (Generic Desktop)
-            0x05, 0x01,
+        inline static constexpr auto ReportDescriptor =
+            std::to_array<std::uint8_t>({
+                // Usage Page (Generic Desktop)
+                0x05, 0x01,
 
-            // Usage (Keyboard)
-            0x09, 0x06,
+                // Usage (Keyboard)
+                0x09, 0x06,
 
-            // Collection (Application)
-            0xA1, 0x01,
+                // Collection (Application)
+                0xA1, 0x01,
 
-            // Modifier byte
-            0x05, 0x07, // Usage Page (Keyboard)
-            0x19, 0xE0, // Usage Minimum (Left Control)
-            0x29, 0xE7, // Usage Maximum (Right GUI)
-            0x15, 0x00, // Logical Minimum (0)
-            0x25, 0x01, // Logical Maximum (1)
-            0x75, 0x01, // Report Size (1)
-            0x95, 0x08, // Report Count (8)
-            0x81, 0x02, // Input (Data, Variable, Absolute)
+                // Modifier byte
+                0x05, 0x07,
+                0x19, 0xE0,
+                0x29, 0xE7,
+                0x15, 0x00,
+                0x25, 0x01,
+                0x75, 0x01,
+                0x95, 0x08,
+                0x81, 0x02,
 
-            // Reserved byte
-            0x95, 0x01, // Report Count (1)
-            0x75, 0x08, // Report Size (8)
-            0x81, 0x01, // Input (Constant)
+                // Reserved byte
+                0x95, 0x01,
+                0x75, 0x08,
+                0x81, 0x01,
 
-            // Keyboard LEDs
-            0x95, 0x05, // Report Count (5)
-            0x75, 0x01, // Report Size (1)
-            0x05, 0x08, // Usage Page (LEDs)
-            0x19, 0x01, // Usage Minimum (Num Lock)
-            0x29, 0x05, // Usage Maximum (Kana)
-            0x91, 0x02, // Output (Data, Variable, Absolute)
+                // Keyboard LEDs
+                0x95, 0x05,
+                0x75, 0x01,
+                0x05, 0x08,
+                0x19, 0x01,
+                0x29, 0x05,
+                0x91, 0x02,
 
-            // LED padding
-            0x95, 0x01,
-            0x75, 0x03,
-            0x91, 0x01, // Output (Constant)
+                // LED padding
+                0x95, 0x01,
+                0x75, 0x03,
+                0x91, 0x01,
 
-            // NKRO bitmap
-            0x05, 0x07, // Usage Page (Keyboard)
-            0x15, 0x00, // Logical Minimum (0)
-            0x25, 0x01, // Logical Maximum (1)
-            0x75, 0x01, // Report Size (1)
+                // NKRO bitmap
+                0x05, 0x07,
+                0x15, 0x00,
+                0x25, 0x01,
+                0x75, 0x01,
 
-            // Bits 0x00..0x03: unused/reserved
-            0x95, 0x04, // Report Count (4)
-            0x81, 0x01, // Input (Constant)
+                // Bits 0x00..0x03: unused/reserved
+                0x95, 0x04,
+                0x81, 0x01,
 
-            // Bits 0x04..0x87
-            0x19, 0x04, // Usage Minimum (A)
-            0x29, 0x87, // Usage Maximum (International1)
-            0x95, 0x84, // 132 usages
-            0x81, 0x02, // Input (Data, Variable, Absolute)
+                // Bits 0x04..0x87
+                0x19, 0x04,
+                0x29, 0x87,
+                0x95, 0x84,
+                0x81, 0x02,
 
-            // End Collection
-            0xC0,
-        });
+                // End Collection
+                0xC0,
+            });
 
-        inline static constexpr std::array<std::uint8_t, 9>
-            Descriptor = {
+        inline static constexpr std::array<std::uint8_t, 9> Descriptor = {
             9,
-            0x21,       // HID descriptor
-            0x11, 0x01, // HID 1.11
-            0x00,       // bCountryCode
-            1,          // bNumDescriptors
-            0x22,       // Report descriptor
+            0x21,
+            0x11, 0x01,
+            0x00,
+            1,
+            0x22,
             static_cast<std::uint8_t>(
                 ReportDescriptor.size() & 0xFF
             ),
@@ -96,11 +98,15 @@ namespace quartz::usb::descriptors {
         };
     };
 
-    struct Debug {
+    struct RPC
+    {
         static constexpr std::uint8_t InterfaceNumber = 1;
 
-        static constexpr std::uint8_t EndpointNumber  = 4;
-        static constexpr std::uint8_t EndpointAddress = 0x84;
+        static constexpr std::uint8_t RequestEndpointNumber  = 3;
+        static constexpr std::uint8_t RequestEndpointAddress = 0x03;
+
+        static constexpr std::uint8_t ResponseEndpointNumber  = 4;
+        static constexpr std::uint8_t ResponseEndpointAddress = 0x84;
 
         static constexpr std::uint16_t MaxPacketSize = 32;
     };
@@ -130,13 +136,13 @@ namespace quartz::usb::descriptors {
         1,
     };
 
-    inline constexpr std::array<std::uint8_t, 50> Configuration = {
+    inline constexpr std::array<std::uint8_t, 57> Configuration = {
         // ---------------------------------------------------------
         // Configuration
         // ---------------------------------------------------------
         9,
         0x02,
-        50, 0, // wTotalLength
+        57, 0, // wTotalLength
         2,     // bNumInterfaces
         1,
         0,
@@ -182,25 +188,36 @@ namespace quartz::usb::descriptors {
         1, // poll every 1 ms
 
         // ---------------------------------------------------------
-        // Interface 1: Quartz vendor/debug
+        // Interface 1: Quartz RPC
         // ---------------------------------------------------------
         9,
         0x04,
-        Debug::InterfaceNumber,
+        RPC::InterfaceNumber,
         0,
-        1,
-        0xFF,
+        2,    // EP3 OUT + EP4 IN
+        0xFF, // Vendor-specific
         0,
         0,
         0,
 
-        // EP4 IN
+        // EP3 OUT - RPC requests
         7,
         0x05,
-        Debug::EndpointAddress,
+        RPC::RequestEndpointAddress,
         0x02, // Bulk
         static_cast<std::uint8_t>(
-            Debug::MaxPacketSize
+            RPC::MaxPacketSize
+        ),
+        0,
+        0,
+
+        // EP4 IN - RPC responses
+        7,
+        0x05,
+        RPC::ResponseEndpointAddress,
+        0x02, // Bulk
+        static_cast<std::uint8_t>(
+            RPC::MaxPacketSize
         ),
         0,
         0,

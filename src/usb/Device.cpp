@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 
 #include "Descriptors.hpp"
 #include "Interrupt.hpp"
@@ -15,6 +16,7 @@
 
 #include "hid/BootKeyboardReport.hpp"
 #include "hid/NKROKeyboardReport.hpp"
+#include "quartz/rpc/RPC.hpp"
 
 namespace quartz::usb {
     namespace {
@@ -47,6 +49,12 @@ namespace quartz::usb {
             0xAA, 0x55, 0xA5, 0x5A,
             0xFF, 0x00, 0x33, 0xCC,
         };
+
+        constexpr std::size_t MaxRPCFrameSize = 512;
+
+        std::array<std::uint8_t, MaxRPCFrameSize> RPCReceiveBuffer{};
+        std::size_t RPCReceiveLength = 0;
+        std::size_t RPCExpectedLength = 0;
     }
 
     std::array<void(*)(), hal::USB::MaxEndpoint + 1> Device::endpointInHandlers {
@@ -175,6 +183,23 @@ namespace quartz::usb {
         return true;
     }
 
+    bool Device::sendRPCData(const std::uint8_t *data, const std::size_t length) noexcept
+    {
+        constexpr std::uint8_t endpoint = 4;
+        if (!isConfigured() ||
+            isEndpointBusy(endpoint)) {
+            return false;
+        }
+
+        sendEndpoint(
+            endpoint,
+            data,
+            length
+        );
+
+        return true;
+    }
+
     void Device::handleInterrupt() noexcept
     {
         const std::uint32_t status =
@@ -202,14 +227,26 @@ namespace quartz::usb {
 
         for (std::uint8_t endpoint = 1; endpoint <= hal::USB::MaxEndpoint; ++endpoint)
         {
-            const std::uint32_t ack =
-                1u << (7u + endpoint);
+            const std::uint32_t ack = 1u << (7u + endpoint);
 
-            if ((status & ack) == 0)
+            if ((status & ack) == 0u)
                 continue;
 
             hal::USB::clearInterruptStatus(ack);
-            handleEndpointIn(endpoint);
+
+            switch (endpoint) {
+                case 1:
+                case 4:
+                    handleEndpointIn(endpoint);
+                    break;
+
+                case 3:
+                    handleEndpointOut(endpoint);
+                    break;
+
+                default:
+                    break;
+            }
         }
     }
 
@@ -741,7 +778,8 @@ namespace quartz::usb {
 
     void Device::handleEP4In() noexcept
     {
-        debug::DebugEndpoint::handleTransmitComplete();
+        //debug::DebugEndpoint::handleTransmitComplete();
+        
     }
 
     void Device::handleEP0Out() noexcept
@@ -855,6 +893,53 @@ namespace quartz::usb {
 
     void Device::handleEP3Out() noexcept
     {
+        constexpr std::uint8_t endpoint = 3;
+
+        const std::size_t length = hal::USB::getEndpointByteCount(endpoint);
+
+        if (length == 0 || RPCReceiveLength + length > RPCReceiveBuffer.size()) {
+            RPCReceiveLength = 0;
+            RPCExpectedLength = 0;
+            hal::USB::armOutEndpoint(endpoint);
+            return;
+        }
+
+        hal::USB::readEndpointFifo(endpoint, RPCReceiveBuffer.data() + RPCReceiveLength, length);
+        RPCReceiveLength += length;
+
+        if (RPCExpectedLength == 0 && RPCReceiveLength >= sizeof(rpc::PacketHeader)) {
+            rpc::PacketHeader header{};
+            std::memcpy(&header, RPCReceiveBuffer.data(), sizeof(header));
+
+            if (header.Magic != rpc::RPC::Magic /* adapt visibility here */) {
+                RPCReceiveLength = 0;
+                RPCExpectedLength = 0;
+                hal::USB::armOutEndpoint(endpoint);
+                return;
+            }
+
+            RPCExpectedLength = sizeof(rpc::PacketHeader) + header.PayloadLength;
+
+            if (RPCExpectedLength > RPCReceiveBuffer.size()) {
+                RPCReceiveLength = 0;
+                RPCExpectedLength = 0;
+                hal::USB::armOutEndpoint(endpoint);
+                return;
+            }
+        }
+
+        if (RPCExpectedLength != 0 && RPCReceiveLength == RPCExpectedLength) {
+            rpc::RPC::handlePacket(RPCReceiveBuffer.data(), RPCReceiveLength);
+
+            RPCReceiveLength = 0;
+            RPCExpectedLength = 0;
+        }
+        else if (RPCExpectedLength != 0 && RPCReceiveLength > RPCExpectedLength) {
+            RPCReceiveLength = 0;
+            RPCExpectedLength = 0;
+        }
+
+        hal::USB::armOutEndpoint(endpoint);
     }
 
     void Device::handleEP4Out() noexcept
@@ -960,25 +1045,39 @@ namespace quartz::usb {
             debug::DebugEndpoint::setConfigured(false);
 
             hal::USB::disableEndpoint(1);
+            hal::USB::disableEndpoint(3);
             hal::USB::disableEndpoint(4);
 
             endpointStates[1] = EndpointState::Idle;
+            endpointStates[3] = EndpointState::Idle;
             endpointStates[4] = EndpointState::Idle;
+
             return;
         }
 
-        // HID keyboard: EP1 IN interrupt, 8 bytes.
         hal::USB::setEndpointDirection(1, false);
         hal::USB::enableEndpoint(1);
 
-        // Quartz debug: EP4 IN bulk, 32 bytes.
-        hal::USB::setEndpointDirection(4, false);
-        hal::USB::enableEndpoint(4);
+        hal::USB::setEndpointDirection(
+            descriptors::RPC::RequestEndpointNumber,
+            true
+        );
 
-        debug::DebugEndpoint::setConfigured(true);
+        hal::USB::enableEndpoint(
+            descriptors::RPC::RequestEndpointNumber
+        );
 
-        debug::DebugEndpoint::writeString(
-            "Quartz composite HID/debug configured\n"
+        hal::USB::armOutEndpoint(
+            descriptors::RPC::RequestEndpointNumber
+        );
+
+        hal::USB::setEndpointDirection(
+            descriptors::RPC::ResponseEndpointNumber,
+            false
+        );
+
+        hal::USB::enableEndpoint(
+            descriptors::RPC::ResponseEndpointNumber
         );
     }
 

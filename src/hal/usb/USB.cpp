@@ -103,23 +103,40 @@ namespace quartz::hal {
 
     std::uint32_t USB::readFifo32(const std::uint16_t offset) noexcept
     {
+        const std::uint32_t interruptState = __get_PRIMASK();
+        __disable_irq();
+
         SN_USB->RWADDR = offset;
         SN_USB->RWSTATUS = FifoReadBusy;
 
         while ((SN_USB->RWSTATUS & FifoReadBusy) != 0u) {
         }
 
-        return SN_USB->RWDATA;
+        const std::uint32_t value = SN_USB->RWDATA;
+
+        if ((interruptState & 1u) == 0u)
+            __enable_irq();
+
+        return value;
     }
 
-    void USB::writeFifo32(const std::uint16_t offset, const std::uint32_t value) noexcept
+    void USB::writeFifo32(
+        const std::uint16_t offset,
+        const std::uint32_t value
+    ) noexcept
     {
+        const std::uint32_t interruptState = __get_PRIMASK();
+        __disable_irq();
+
         SN_USB->RWADDR = offset;
         SN_USB->RWDATA = value;
         SN_USB->RWSTATUS = FifoWriteBusy;
 
         while ((SN_USB->RWSTATUS & FifoWriteBusy) != 0u) {
         }
+
+        if ((interruptState & 1u) == 0u)
+            __enable_irq();
     }
 
     std::uint16_t USB::getEndpointBufferOffset(const std::uint8_t endpoint) noexcept

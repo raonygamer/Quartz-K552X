@@ -4,6 +4,7 @@
 extern "C" {
     #include "SN32F240B.h"
 }
+#include <cstring>
 
 namespace quartz::kb::rgb
 {
@@ -80,7 +81,7 @@ namespace quartz::kb::rgb
         fill(0u, 0u, 0u);
     }
 
-    void RGBMatrix::fill(const Color color) noexcept
+    void RGBMatrix::fill(const utils::Color32 color) noexcept
     {
         for (std::size_t row = 0; row < Rows; ++row) {
             for (std::size_t column = 0; column < Columns; ++column) {
@@ -91,14 +92,14 @@ namespace quartz::kb::rgb
 
     void RGBMatrix::fill(const std::uint8_t r, const std::uint8_t g, const std::uint8_t b) noexcept
     {
-        fill(Color{
+        fill(utils::Color32{
             .R = r,
             .G = g,
             .B = b
         });
     }
 
-    void RGBMatrix::setPixel(const std::uint8_t row, const std::uint8_t column, const Color color) noexcept
+    void RGBMatrix::setPixel(const std::uint8_t row, const std::uint8_t column, const utils::Color32 color) noexcept
     {
         if (row >= Rows || column >= Columns)
             return;
@@ -108,14 +109,22 @@ namespace quartz::kb::rgb
 
     void RGBMatrix::setPixel(const std::uint8_t row, const std::uint8_t column, const std::uint8_t r, const std::uint8_t g, const std::uint8_t b) noexcept
     {
-        setPixel(row, column, Color{
+        setPixel(row, column, utils::Color32{
             .R = r,
             .G = g,
             .B = b
         });
     }
 
-    RGBMatrix::Color RGBMatrix::getPixel(const std::uint8_t row, const std::uint8_t column) noexcept
+    void RGBMatrix::setFramebuffer(const utils::Color32 *colors, std::size_t count) noexcept
+    {
+        if (colors == nullptr || count == 0u)
+            return;
+
+        memcpy(Framebuffer, colors, count * sizeof(utils::Color32));
+    }
+
+    utils::Color32 RGBMatrix::getPixel(const std::uint8_t row, const std::uint8_t column) noexcept
     {
         if (row >= Rows || column >= Columns)
             return {};
@@ -140,13 +149,13 @@ namespace quartz::kb::rgb
     {
         const std::uint8_t column = 15u - CurrentColumn;
 
-        const Color& row0 = Framebuffer[0][column];
-        const Color& row1 = Framebuffer[1][column];
-        const Color& row2 = Framebuffer[2][column];
-        const Color& row3 = Framebuffer[3][column];
-        const Color& row4 = Framebuffer[4][column];
-        const Color& row5 = Framebuffer[5][column];
-        const Color& row6 = Framebuffer[6][column];
+        const utils::Color32& row0 = Framebuffer[0][column];
+        const utils::Color32& row1 = Framebuffer[1][column];
+        const utils::Color32& row2 = Framebuffer[2][column];
+        const utils::Color32& row3 = Framebuffer[3][column];
+        const utils::Color32& row4 = Framebuffer[4][column];
+        const utils::Color32& row5 = Framebuffer[5][column];
+        const utils::Color32& row6 = Framebuffer[6][column];
 
         // Stock physical channel order is R, B, G.
 

@@ -13,6 +13,7 @@
 #include "usb/hid/KeyboardReporter.hpp"
 #include "kb/Keyboard.hpp"
 #include "utils/Time.hpp"
+#include "quartz/Profiling.hpp"
 
 namespace quartz {
     constexpr std::uint32_t RawTickMask = 0x00FFFFFFu;
@@ -147,12 +148,19 @@ namespace quartz {
         {
             const auto scanStart = hal::HighResolutionTimer::rawTicks();
 
-            const auto elapsed = LastScanTicks != 0
-                ? (scanStart - LastScanTicks) & RawTickMask
-                : ScanIntervalTicks;
+            if (LastScanTicks != 0) {
+                const auto scanPeriod = (scanStart - LastScanTicks) & RawTickMask;
+
+                if (profiling::AverageScanPeriodTicks == 0)
+                    profiling::AverageScanPeriodTicks = scanPeriod;
+                else
+                    profiling::AverageScanPeriodTicks = (profiling::AverageScanPeriodTicks * 31u + scanPeriod) / 32u;
+            }
 
             LastScanTicks = scanStart;
+
             kb::Matrix::scan();
+
             const auto hidStart = hal::HighResolutionTimer::rawTicks();
 
             if (kb::KeyboardState::anyKeyChanged()) {
@@ -160,22 +168,7 @@ namespace quartz {
                 usb::hid::service();
             }
 
-            HIDTicks = static_cast<std::uint32_t>((hal::HighResolutionTimer::rawTicks() - hidStart) & RawTickMask);
-
-            const auto scanEnd = hal::HighResolutionTimer::rawTicks();
-            const auto scanDuration = (scanEnd - scanStart) & RawTickMask;
-
-            if (LastScanTicks != 0) {
-                ScanPeriodTicksSum += elapsed;
-                ++ScanPeriodSamples;
-            }
-
-            if (elapsed != 0) {
-                ScanDurationTicks = scanDuration;
-                ScanPeriodTicks = elapsed;
-                ScanRate = static_cast<std::uint32_t>(SystemCoreClock / elapsed);
-                CPUScanUsage = static_cast<std::uint32_t>((scanDuration * 10'000ULL) / elapsed);
-            }
+            profiling::HIDTicks = (hal::HighResolutionTimer::rawTicks() - hidStart) & RawTickMask;
         }
     }
 
@@ -194,13 +187,12 @@ namespace quartz {
         std::uint32_t softwareTicks = 0;
 
         std::uint32_t nextScanTicks = ScanIntervalTicks;
-        std::uint32_t nextPrintTicks = ScanPrintIntervalTicks;
         std::uint32_t nextAnimationTicks = AnimationIntervalTicks;
 
 
-        //kb::rgb::RGBMatrix::fill(255, 0, 0);
-        initializeTestAnimation();
-        updateTestAnimation();
+        kb::rgb::RGBMatrix::fill(0, 255, 0);
+        // initializeTestAnimation();
+        // updateTestAnimation();
         kb::rgb::RGBMatrix::resume();
         for (;;) {
             const std::uint32_t rawTicks = hal::HighResolutionTimer::rawTicks();
@@ -218,35 +210,10 @@ namespace quartz {
                 kb::Keyboard::scanAndSend();
             }
 
-            if (static_cast<std::int32_t>(softwareTicks - nextAnimationTicks) >= 0) {
-                nextAnimationTicks += AnimationIntervalTicks;
-                updateTestAnimation();
-            }
-
-            if (static_cast<std::int32_t>(softwareTicks - nextPrintTicks) >= 0) {
-                nextPrintTicks += ScanPrintIntervalTicks;
-
-                if (kb::Keyboard::ScanPeriodSamples != 0) {
-                    kb::Keyboard::AverageScanPeriodTicks = static_cast<std::uint32_t>(kb::Keyboard::ScanPeriodTicksSum / kb::Keyboard::ScanPeriodSamples);
-                    kb::Keyboard::AverageScanRate = static_cast<std::uint32_t>((static_cast<std::uint64_t>(SystemCoreClock) * kb::Keyboard::ScanPeriodSamples) / kb::Keyboard::ScanPeriodTicksSum);
-                    kb::Keyboard::ScanPeriodTicksSum = 0;
-                    kb::Keyboard::ScanPeriodSamples = 0;
-                }
-
-                debug::DebugEndpoint::printf(
-                    "Begin: %u ticks, Scan: %u ticks, End: %u ticks, State: %u ticks, HID: %u ticks, Total: %u ticks, Period: %u/avg ticks, CPU: %u.%u%%, Rate: %u Hz/avg\n",
-                    kb::Matrix::BeginScanTicks,
-                    kb::Matrix::ScanTicks,
-                    kb::Matrix::EndScanTicks,
-                    kb::Keyboard::StateUpdateTicks,
-                    kb::Keyboard::HIDTicks,
-                    kb::Keyboard::ScanDurationTicks,
-                    kb::Keyboard::AverageScanPeriodTicks,
-                    kb::Keyboard::CPUScanUsage / 100,
-                    kb::Keyboard::CPUScanUsage % 100,
-                    kb::Keyboard::AverageScanRate
-                );
-            }
+            // if (static_cast<std::int32_t>(softwareTicks - nextAnimationTicks) >= 0) {
+            //     nextAnimationTicks += AnimationIntervalTicks;
+            //     updateTestAnimation();
+            // }
 
             if (kb::KeyboardState::isFunctionPressed() &&
                 kb::KeyboardState::isKeyDown(kb::Key::LeftControl) &&
