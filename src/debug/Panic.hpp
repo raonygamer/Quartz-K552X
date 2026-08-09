@@ -1,5 +1,8 @@
 #pragma once
 #include <cstdint>
+#include <cstring>
+#include <algorithm>
+
 extern "C" {
     #include "SN32F240B.h"
 }
@@ -14,6 +17,7 @@ namespace quartz::debug {
             std::uint32_t LinkRegister;
             std::uint32_t StackPointer;
             std::uint32_t PanicCount;
+            const char* PanicReason[32];
         };
 
         struct Controllers {
@@ -110,5 +114,36 @@ namespace quartz::debug {
             controllers.MagicNumber = Controllers::Magic;
             controllers.NextRebootIsBootloader = isBootloader;
         }
+
+        [[gnu::always_inline]]
+        inline static void assertFailed() noexcept {
+            setProgramCounter(reinterpret_cast<std::uint32_t>(__builtin_return_address(0)));
+            setLinkRegister(reinterpret_cast<std::uint32_t>(__builtin_return_address(1)));
+            setStackPointer(reinterpret_cast<std::uint32_t>(__builtin_frame_address(0)));
+            incrementPanicCount();
+            triggerHardFault();
+        }
+
+        [[gnu::always_inline]]
+        inline static void assertFailed(const char* reason) noexcept {
+            const auto len = std::max(sizeof(state.PanicReason) - 1, strlen(reason));
+            memcpy(state.PanicReason, reason, len);
+            state.PanicReason[len - 1] = '\0';
+            assertFailed();
+        }
     };
 }
+
+#define HARD_ASSERTM(condition, reason) \
+    do { \
+        if (!(condition)) { \
+            ::quartz::debug::Panic::assertFailed(reason); \
+        } \
+    } while (false)
+
+#define HARD_ASSERT(condition) \
+    do { \
+        if (!(condition)) { \
+            ::quartz::debug::Panic::assertFailed(); \
+        } \
+    } while (false)
