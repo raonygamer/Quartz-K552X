@@ -1,8 +1,6 @@
 #pragma once
 #include <cstdint>
-extern "C" {
-    #include "SN32F240B.h"
-}
+#include "cppmcu.h"
 
 namespace quartz::hal {
     class HighResolutionTimer {

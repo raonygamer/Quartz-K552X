@@ -1,10 +1,7 @@
-#include "Controller.hpp"
-#include "Interrupt.hpp"
-
-extern "C"
-{
-    #include "SN32F240B.h"
-}
+#include "hal/usb/Controller.hpp"
+#include "hal/usb/Endpoint.hpp"
+#include "debug/Panic.hpp"
+#include "cppmcu.h"
 
 namespace quartz::hal::usb
 {
@@ -28,11 +25,11 @@ namespace quartz::hal::usb
     // USB_SRAM is 256 bytes shared between the 5 endpoints.
     // Offset and size must be aligned by DWORD (4 bytes)
     Controller::EndpointArray Controller::Endpoints = {
-        Endpoint(0, EndpointDirection::Both, 0x00, 0x08),
-        Endpoint(1, EndpointDirection::In, 0x08, 0x18),
-        Endpoint(2, EndpointDirection::In, 0x20, 0x08),
-        Endpoint(3, EndpointDirection::Out, 0x28, 0x40),
-        Endpoint(4, EndpointDirection::In, 0x68, 0x40)
+        Endpoint(EndpointNumber::EP0, EndpointDirection::Both, 0x00, 0x08),
+        Endpoint(EndpointNumber::EP1, EndpointDirection::In, 0x08, 0x18),
+        Endpoint(EndpointNumber::EP2, EndpointDirection::In, 0x20, 0x08),
+        Endpoint(EndpointNumber::EP3, EndpointDirection::Out, 0x28, 0x40),
+        Endpoint(EndpointNumber::EP4, EndpointDirection::In, 0x68, 0x40)
     };
 
     void Controller::initialize() noexcept
@@ -43,7 +40,7 @@ namespace quartz::hal::usb
         SN_USB->PHYPRM = PHY_PARAM1;
         SN_USB->PHYPRM2 = PHY_PARAM2;
         // Set EPnBUFOS for all endpoints except EP0
-        for (std::uint8_t i = 1; i < Endpoint::MaxEndpoints; ++i)
+        for (std::uint8_t i = 1; i < Endpoint::MAX_ENDPOINTS; ++i)
         {
             (&SN_USB->EP1BUFOS)[i - 1] = Endpoints[i].getMemoryOffset();
         }
@@ -68,90 +65,60 @@ namespace quartz::hal::usb
     {
         SN_USB->INSTSC = -1;
         SN_USB->ADDR = 0;
-        getEndpoint(0).enable();
-        for (std::uint8_t i = 1; i < Endpoint::MaxEndpoints; ++i)
+        getEndpoint(EndpointNumber::EP0).enable();
+        for (std::uint8_t i = 1; i < Endpoint::MAX_ENDPOINTS; ++i)
         {
-            getEndpoint(i).disable();
+            getEndpoint(static_cast<EndpointNumber>(i)).disable();
         }
-    }
-
-    void Controller::handleInterrupt() noexcept
-    {
-        const auto status = getInterruptStatus();
-        if (hasInterrupt(status, Interrupt::BusReset))
-        {
-            _clearInterruptStatus(value(Interrupt::BusReset));
-            handleBusReset();
-        }
-
-        if (hasInterrupt(status, Interrupt::BusSuspend))
-        {
-            _clearInterruptStatus(value(Interrupt::BusSuspend));
-            handleBusSuspend();
-        }
-
-        if (hasInterrupt(status, Interrupt::BusResume))
-        {
-            _clearInterruptStatus(value(Interrupt::BusResume));
-            handleBusResume();
-        }
-
-        if (hasInterrupt(status, Interrupt::EP0Setup))
-        {
-            _clearInterruptStatus(value(
-                Interrupt::EP0PreSetup |
-                Interrupt::EP0Setup |
-                Interrupt::EP0InStall |
-                Interrupt::EP0OutStall
-            ));
-            // do setup
-        }
-    }
-
-    void Controller::handleBusReset() noexcept
-    {
-        
-    }
-
-    void Controller::handleBusSuspend() noexcept
-    {
-    }
-
-    void Controller::handleBusResume() noexcept
-    {
     }
 
     void Controller::configure() noexcept
     {
         // Configure all endpoints except EP0, which is already configured in reset()
-        for (std::uint8_t i = 1; i < Endpoint::MaxEndpoints; ++i)
+        for (std::uint8_t i = 1; i < Endpoint::MAX_ENDPOINTS; ++i)
         {
-            getEndpoint(i).configure();
+            getEndpoint(static_cast<EndpointNumber>(i)).configure();
         }
     }
 
     void Controller::deconfigure() noexcept
     {
         // Deconfigure all endpoints except EP0, which is always configured
-        for (std::uint8_t i = 1; i < Endpoint::MaxEndpoints; ++i)
+        for (std::uint8_t i = 1; i < Endpoint::MAX_ENDPOINTS; ++i)
         {
-            getEndpoint(i).deconfigure();
+            getEndpoint(static_cast<EndpointNumber>(i)).deconfigure();
         }
     }
 
-    Endpoint& Controller::getEndpoint(const std::uint8_t endpointNumber) noexcept
+    void Controller::setAddress(const std::uint8_t address) noexcept
     {
-        HARD_ASSERTC(endpointNumber < Endpoint::MaxEndpoints, PanicReason::ENDPT_INVALID_NUM);
-        return Endpoints[endpointNumber];
+        SN_USB->ADDR = address & 0x7Fu;
     }
 
-    std::uint32_t Controller::getInterruptStatus() noexcept
+    bool Controller::isEndpointAvailable(const EndpointNumber) noexcept
     {
-        return SN_USB->INSTS;
+        // Always available for now.
+        return true;
     }
 
-    void Controller::_clearInterruptStatus(const std::uint32_t mask) noexcept
+    Endpoint& Controller::getEndpoint(const EndpointNumber number) noexcept
     {
-        SN_USB->INSTSC = mask;
+        HARD_ASSERTC(value(number) < Endpoint::MAX_ENDPOINTS, PanicReason::ENDPT_INVALID_NUM);
+        return Endpoints[value(number)];
+    }
+
+    Interrupt Controller::getInterruptStatus() noexcept
+    {
+        return static_cast<Interrupt>(SN_USB->INSTS);
+    }
+
+    void Controller::clearInterruptStatus(const Interrupt mask) noexcept
+    {
+        SN_USB->INSTSC = value(mask);
+    }
+
+    Endpoint& Controller::getControlEndpoint() noexcept
+    {
+        return getEndpoint(EndpointNumber::EP0);
     }
 }

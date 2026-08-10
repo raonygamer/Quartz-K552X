@@ -1,34 +1,26 @@
 #pragma once
-#include <cstdint>
-#include <cstddef>
-#include <array>
-
+#include "hal/usb/Interrupt.hpp"
 #include "hal/usb/Endpoint.hpp"
-
-extern "C" {
-    #include "SN32F240B.h"
-}
+#include <array>
 
 namespace quartz::hal::usb {
     class Controller {
     public:
-        using EndpointArray = std::array<Endpoint, Endpoint::MaxEndpoints>;
+        using EndpointArray = std::array<Endpoint, Endpoint::MAX_ENDPOINTS>;
         static EndpointArray Endpoints;
 
         static void initialize() noexcept;
         static void connect() noexcept;
         static void disconnect() noexcept;
         static void reset() noexcept;
-        static void handleInterrupt() noexcept;
-        static void handleBusReset() noexcept;
-        static void handleBusSuspend() noexcept;
-        static void handleBusResume() noexcept;
         static void configure() noexcept;
         static void deconfigure() noexcept;
+        static void setAddress(std::uint8_t address) noexcept;
+        static bool isEndpointAvailable(EndpointNumber number) noexcept;
 
-        static Endpoint& getEndpoint(const std::uint8_t endpointNumber) noexcept;
-        static std::uint32_t getInterruptStatus() noexcept;
-    private:
-        static void _clearInterruptStatus(const std::uint32_t mask) noexcept;
+        static Endpoint& getEndpoint(EndpointNumber number) noexcept;
+        static Interrupt getInterruptStatus() noexcept;
+        static void clearInterruptStatus(Interrupt mask) noexcept;
+        static Endpoint& getControlEndpoint() noexcept;
     };
 }

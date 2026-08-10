@@ -124,7 +124,7 @@ namespace quartz::rpc
         if (payloadSize != 0)
             std::memcpy(TxBuffer + sizeof(header), payload, payloadSize);
 
-        usb::Device::sendRPCData(TxBuffer, totalSize);
+        //usb::Device::sendRPCData(TxBuffer, totalSize);
     }
     
 }

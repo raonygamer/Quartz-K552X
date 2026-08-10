@@ -41,7 +41,7 @@ set_target_properties(${FIRMWARE_TARGET} PROPERTIES
 )
 
 target_include_directories(${FIRMWARE_TARGET} PRIVATE
-        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/include/mcu
         ${CMAKE_SOURCE_DIR}/src
 )
 

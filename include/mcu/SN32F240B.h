@@ -173,7 +173,7 @@ typedef struct {                                /*!< (@ 0x40060000) SN_SYS0 Stru
     
     struct {
       __IOM uint32_t SYSCLKSEL  : 1;            /*!< [0..0] System clock source selection                                      */
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IM  uint32_t SYSCLKST   : 1;            /*!< [4..4] System clock switch status                                         */
     } CLKCFG_b;
   } ;
@@ -203,9 +203,9 @@ typedef struct {                                /*!< (@ 0x40060000) SN_SYS0 Stru
     
     struct {
       __IOM uint32_t LVDRSTLVL  : 3;            /*!< [2..0] LVD reset level                                                    */
-      __IM  uint32_t            : 1;
+      uint32_t            : 1;
       __IOM uint32_t LVDINTLVL  : 3;            /*!< [6..4] LVD interrupt level                                                */
-      __IM  uint32_t            : 7;
+      uint32_t            : 7;
       __IOM uint32_t LVDRSTEN   : 1;            /*!< [14..14] LVD Reset enable                                                 */
       __IOM uint32_t LVDEN      : 1;            /*!< [15..15] LVD enable                                                       */
     } LVDCTRL_b;
@@ -232,7 +232,7 @@ typedef struct {                                /*!< (@ 0x40060000) SN_SYS0 Stru
     
     struct {
       __IOM uint32_t IVTM       : 2;            /*!< [1..0] Interrupt table mapping selection                                  */
-      __IM  uint32_t            : 14;
+      uint32_t            : 14;
       __OM  uint32_t IVTMKEY    : 16;           /*!< [31..16] IVTM register key                                                */
     } IVTM_b;
   } ;
@@ -241,7 +241,7 @@ typedef struct {                                /*!< (@ 0x40060000) SN_SYS0 Stru
     __IOM uint32_t NDTCTRL;                     /*!< (@ 0x00000028) Offset:0x28 Noise Detect Control Register                  */
     
     struct {
-      __IM  uint32_t            : 1;
+      uint32_t            : 1;
       __IOM uint32_t NDT5V_IE   : 1;            /*!< [1..1] NDT for VDD 5V interrupt enable bit                                */
     } NDTCTRL_b;
   } ;
@@ -250,7 +250,7 @@ typedef struct {                                /*!< (@ 0x40060000) SN_SYS0 Stru
     __IOM uint32_t NDTSTS;                      /*!< (@ 0x0000002C) Offset:0x2C Noise Detect Status Register                   */
     
     struct {
-      __IM  uint32_t            : 1;
+      uint32_t            : 1;
       __IOM uint32_t NDT5V_DET  : 1;            /*!< [1..1] Power noise status of NDT5V                                        */
     } NDTSTS_b;
   } ;
@@ -286,21 +286,21 @@ typedef struct {                                /*!< (@ 0x4005E000) SN_SYS1 Stru
       __IOM uint32_t P2CLKEN    : 1;            /*!< [2..2] Enable AHB clock for P2                                            */
       __IOM uint32_t P3CLKEN    : 1;            /*!< [3..3] Enable AHB clock for P3                                            */
       __IOM uint32_t USBCLKEN   : 1;            /*!< [4..4] Enable AHB clock for USB                                           */
-      __IM  uint32_t            : 1;
+      uint32_t            : 1;
       __IOM uint32_t CT16B0CLKEN : 1;           /*!< [6..6] Enable AHB clock for CT16B0                                        */
       __IOM uint32_t CT16B1CLKEN : 1;           /*!< [7..7] Enable AHB clock for CT16B1                                        */
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IOM uint32_t ADCCLKEN   : 1;            /*!< [11..11] Enable AHB clock for ADC                                         */
       __IOM uint32_t SPI0CLKEN  : 1;            /*!< [12..12] Enable AHB clock for SPI0                                        */
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IOM uint32_t UART0CLKEN : 1;            /*!< [16..16] Enable AHB clock for UART0                                       */
       __IOM uint32_t UART1CLKEN : 1;            /*!< [17..17] Enable AHB clock for UART1                                       */
       __IOM uint32_t UART2CLKEN : 1;            /*!< [18..18] Enable AHB clock for UART2                                       */
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IOM uint32_t I2C0CLKEN  : 1;            /*!< [21..21] Enable AHB clock for I2C0                                        */
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IOM uint32_t WDTCLKEN   : 1;            /*!< [24..24] Enable AHB clock for WDT                                         */
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IOM uint32_t CLKOUTSEL  : 3;            /*!< [30..28] Clock output source selection                                    */
     } AHBCLKEN_b;
   } ;
@@ -310,9 +310,9 @@ typedef struct {                                /*!< (@ 0x4005E000) SN_SYS1 Stru
     __IOM uint32_t APBCP1;                      /*!< (@ 0x00000008) Offset:0x08 APB Clock Prescale Register 1                  */
     
     struct {
-      __IM  uint32_t            : 20;
+      uint32_t            : 20;
       __IOM uint32_t WDTPRE     : 3;            /*!< [22..20] WDT APB clock source prescaler                                   */
-      __IM  uint32_t            : 5;
+      uint32_t            : 5;
       __IOM uint32_t CLKOUTPRE  : 3;            /*!< [30..28] CLKOUT APB clock source prescaler                                */
     } APBCP1_b;
   } ;
@@ -673,7 +673,7 @@ typedef struct {                                /*!< (@ 0x4004A000) SN_GPIO3 Str
     __IOM uint32_t DATA;                        /*!< (@ 0x00000000) Offset:0x00 GPIO Port n Data Register                      */
     
     struct {
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IOM uint32_t DATA3      : 1;            /*!< [3..3] Data of Pn.3                                                       */
       __IOM uint32_t DATA4      : 1;            /*!< [4..4] Data of Pn.4                                                       */
       __IOM uint32_t DATA5      : 1;            /*!< [5..5] Data of Pn.5                                                       */
@@ -690,7 +690,7 @@ typedef struct {                                /*!< (@ 0x4004A000) SN_GPIO3 Str
     __IOM uint32_t MODE;                        /*!< (@ 0x00000004) Offset:0x04 GPIO Port n Mode Register                      */
     
     struct {
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IOM uint32_t MODE3      : 1;            /*!< [3..3] Mode of Pn.3                                                       */
       __IOM uint32_t MODE4      : 1;            /*!< [4..4] Mode of Pn.4                                                       */
       __IOM uint32_t MODE5      : 1;            /*!< [5..5] Mode of Pn.5                                                       */
@@ -707,7 +707,7 @@ typedef struct {                                /*!< (@ 0x4004A000) SN_GPIO3 Str
     __IOM uint32_t CFG;                         /*!< (@ 0x00000008) Offset:0x08 GPIO Port n Configuration Register             */
     
     struct {
-      __IM  uint32_t            : 6;
+      uint32_t            : 6;
       __IOM uint32_t CFG3       : 2;            /*!< [7..6] Configuration of Pn.3                                              */
       __IOM uint32_t CFG4       : 2;            /*!< [9..8] Configuration of Pn.4                                              */
       __IOM uint32_t CFG5       : 2;            /*!< [11..10] Configuration of Pn.5                                            */
@@ -724,7 +724,7 @@ typedef struct {                                /*!< (@ 0x4004A000) SN_GPIO3 Str
     __IOM uint32_t IS;                          /*!< (@ 0x0000000C) Offset:0x0C GPIO Port n Interrupt Sense Register           */
     
     struct {
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IOM uint32_t IS3        : 1;            /*!< [3..3] Interrupt on Pn.3 is event or edge sensitive                       */
       __IOM uint32_t IS4        : 1;            /*!< [4..4] Interrupt on Pn.4 is event or edge sensitive                       */
       __IOM uint32_t IS5        : 1;            /*!< [5..5] Interrupt on Pn.5 is event or edge sensitive                       */
@@ -742,7 +742,7 @@ typedef struct {                                /*!< (@ 0x4004A000) SN_GPIO3 Str
                                                                     Register                                                   */
     
     struct {
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IOM uint32_t IBS3       : 1;            /*!< [3..3] Interrupt on Pn.3 is triggered ob both edges                       */
       __IOM uint32_t IBS4       : 1;            /*!< [4..4] Interrupt on Pn.4 is triggered ob both edges                       */
       __IOM uint32_t IBS5       : 1;            /*!< [5..5] Interrupt on Pn.5 is triggered ob both edges                       */
@@ -759,7 +759,7 @@ typedef struct {                                /*!< (@ 0x4004A000) SN_GPIO3 Str
     __IOM uint32_t IEV;                         /*!< (@ 0x00000014) Offset:0x14 GPIO Port n Interrupt Event Register           */
     
     struct {
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IOM uint32_t IEV3       : 1;            /*!< [3..3] Interrupt trigged evnet on Pn.3                                    */
       __IOM uint32_t IEV4       : 1;            /*!< [4..4] Interrupt trigged evnet on Pn.4                                    */
       __IOM uint32_t IEV5       : 1;            /*!< [5..5] Interrupt trigged evnet on Pn.5                                    */
@@ -776,7 +776,7 @@ typedef struct {                                /*!< (@ 0x4004A000) SN_GPIO3 Str
     __IOM uint32_t IE;                          /*!< (@ 0x00000018) Offset:0x18 GPIO Port n Interrupt Enable Register          */
     
     struct {
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IOM uint32_t IE3        : 1;            /*!< [3..3] Interrupt on Pn.3 enable                                           */
       __IOM uint32_t IE4        : 1;            /*!< [4..4] Interrupt on Pn.4 enable                                           */
       __IOM uint32_t IE5        : 1;            /*!< [5..5] Interrupt on Pn.5 enable                                           */
@@ -794,7 +794,7 @@ typedef struct {                                /*!< (@ 0x4004A000) SN_GPIO3 Str
                                                                     Register                                                   */
     
     struct {
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IM  uint32_t IF3        : 1;            /*!< [3..3] Pn.3 raw interrupt flag                                            */
       __IM  uint32_t IF4        : 1;            /*!< [4..4] Pn.4 raw interrupt flag                                            */
       __IM  uint32_t IF5        : 1;            /*!< [5..5] Pn.5 raw interrupt flag                                            */
@@ -811,7 +811,7 @@ typedef struct {                                /*!< (@ 0x4004A000) SN_GPIO3 Str
     __OM  uint32_t IC;                          /*!< (@ 0x00000020) Offset:0x20 GPIO Port n Interrupt Clear Register           */
     
     struct {
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __OM  uint32_t IC3        : 1;            /*!< [3..3] Pn.3 interrupt flag clear                                          */
       __OM  uint32_t IC4        : 1;            /*!< [4..4] Pn.4 interrupt flag clear                                          */
       __OM  uint32_t IC5        : 1;            /*!< [5..5] Pn.5 interrupt flag clear                                          */
@@ -828,7 +828,7 @@ typedef struct {                                /*!< (@ 0x4004A000) SN_GPIO3 Str
     __OM  uint32_t BSET;                        /*!< (@ 0x00000024) Offset:0x24 GPIO Port n Bits Set Operation Register        */
     
     struct {
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __OM  uint32_t BSET3      : 1;            /*!< [3..3] Set Pn.3                                                           */
       __OM  uint32_t BSET4      : 1;            /*!< [4..4] Set Pn.4                                                           */
       __OM  uint32_t BSET5      : 1;            /*!< [5..5] Set Pn.5                                                           */
@@ -846,7 +846,7 @@ typedef struct {                                /*!< (@ 0x4004A000) SN_GPIO3 Str
                                                                     Register                                                   */
     
     struct {
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __OM  uint32_t BCLR3      : 1;            /*!< [3..3] Clear Pn.3                                                         */
       __OM  uint32_t BCLR4      : 1;            /*!< [4..4] Clear Pn.4                                                         */
       __OM  uint32_t BCLR5      : 1;            /*!< [5..5] Clear Pn.5                                                         */
@@ -1012,7 +1012,7 @@ typedef struct {                                /*!< (@ 0x40000000) SN_CT16B0 St
     
     struct {
       __IM  uint32_t MR0IF      : 1;            /*!< [0..0] Match channel 0 interrupt flag                                     */
-      __IM  uint32_t            : 24;
+      uint32_t            : 24;
       __IM  uint32_t CAP0IF     : 1;            /*!< [25..25] Interrupt flag for capture channel 0                             */
     } RIS_b;
   } ;
@@ -1022,7 +1022,7 @@ typedef struct {                                /*!< (@ 0x40000000) SN_CT16B0 St
     
     struct {
       __OM  uint32_t MR0IC      : 1;            /*!< [0..0] MR0IF clear bit                                                    */
-      __IM  uint32_t            : 24;
+      uint32_t            : 24;
       __OM  uint32_t CAP0IC     : 1;            /*!< [25..25] CAP0IF clear bit                                                 */
     } IC_b;
   } ;
@@ -1485,7 +1485,7 @@ typedef struct {                                /*!< (@ 0x40010000) SN_WDT Struc
       __IOM uint32_t WDTEN      : 1;            /*!< [0..0] WDT enable                                                         */
       __IOM uint32_t WDTIE      : 1;            /*!< [1..1] WDT interrupt enable                                               */
       __IOM uint32_t WDTINT     : 1;            /*!< [2..2] WDT interrupt flag                                                 */
-      __IM  uint32_t            : 13;
+      uint32_t            : 13;
       __OM  uint32_t WDKEY      : 16;           /*!< [31..16] WDT register key                                                 */
     } CFG_b;
   } ;
@@ -1496,7 +1496,7 @@ typedef struct {                                /*!< (@ 0x40010000) SN_WDT Struc
     
     struct {
       __IOM uint32_t TC         : 8;            /*!< [7..0] Watchdog timer constant reload value                               */
-      __IM  uint32_t            : 8;
+      uint32_t            : 8;
       __OM  uint32_t WDKEY      : 16;           /*!< [31..16] WDT register key                                                 */
     } TC_b;
   } ;
@@ -1533,7 +1533,7 @@ typedef struct {                                /*!< (@ 0x4001C000) SN_SPI0 Stru
       __IOM uint32_t SDODIS     : 1;            /*!< [2..2] Slave data out disable                                             */
       __IOM uint32_t MS         : 1;            /*!< [3..3] Master/Slave selection                                             */
       __IOM uint32_t FORMAT     : 1;            /*!< [4..4] Interface format                                                   */
-      __IM  uint32_t            : 1;
+      uint32_t            : 1;
       __OM  uint32_t FRESET     : 2;            /*!< [7..6] SPI FSM and FIFO Reset                                             */
       __IOM uint32_t DL         : 4;            /*!< [11..8] Data length = DL[3:0]+1                                           */
       __IOM uint32_t TXFIFOTH   : 3;            /*!< [14..12] TX FIFO Threshold level                                          */
@@ -1641,13 +1641,13 @@ typedef struct {                                /*!< (@ 0x40018000) SN_I2C0 Stru
     __IOM uint32_t CTRL;                        /*!< (@ 0x00000000) Offset:0x00 I2Cn Control Register                          */
     
     struct {
-      __IM  uint32_t            : 1;
+      uint32_t            : 1;
       __IOM uint32_t NACK       : 1;            /*!< [1..1] NACK assert flag                                                   */
       __IOM uint32_t ACK        : 1;            /*!< [2..2] ACK assert flag                                                    */
-      __IM  uint32_t            : 1;
+      uint32_t            : 1;
       __IOM uint32_t STO        : 1;            /*!< [4..4] STOP assert flag                                                   */
       __IOM uint32_t STA        : 1;            /*!< [5..5] START assert flag                                                  */
-      __IM  uint32_t            : 1;
+      uint32_t            : 1;
       __IOM uint32_t I2CMODE    : 1;            /*!< [7..7] I2C mode                                                           */
       __IOM uint32_t I2CEN      : 1;            /*!< [8..8] I2Cn interface enable                                              */
     } CTRL_b;
@@ -1667,7 +1667,7 @@ typedef struct {                                /*!< (@ 0x40018000) SN_I2C0 Stru
       __IM  uint32_t SLV_TX_HIT : 1;            /*!< [7..7] Slave TX address hit flag                                          */
       __IM  uint32_t LOST_ARB   : 1;            /*!< [8..8] Lost arbitration status                                            */
       __IM  uint32_t TIMEOUT    : 1;            /*!< [9..9] Time-out status                                                    */
-      __IM  uint32_t            : 5;
+      uint32_t            : 5;
       __IOM uint32_t I2CIF      : 1;            /*!< [15..15] I2C interrupt flag                                               */
     } STAT_b;
   } ;
@@ -1693,7 +1693,7 @@ typedef struct {                                /*!< (@ 0x40018000) SN_I2C0 Stru
     
     struct {
       __IOM uint32_t ADDR       : 10;           /*!< [9..0] I2Cn slave address 0                                               */
-      __IM  uint32_t            : 20;
+      uint32_t            : 20;
       __IOM uint32_t GCEN       : 1;            /*!< [30..30] General call address enable                                      */
       __IOM uint32_t ADD_MODE   : 1;            /*!< [31..31] Slave address mode                                               */
     } SLVADDR0_b;
@@ -1805,9 +1805,9 @@ typedef struct {                                /*!< (@ 0x40016000) SN_UART0 Str
         __IOM uint32_t RDAIE    : 1;            /*!< [0..0] RDA interrupt enable                                               */
         __IOM uint32_t THREIE   : 1;            /*!< [1..1] THRE interrupt enable                                              */
         __IOM uint32_t RLSIE    : 1;            /*!< [2..2] RLS interrupt enable                                               */
-        __IM  uint32_t          : 1;
+        uint32_t          : 1;
         __IOM uint32_t TEMTIE   : 1;            /*!< [4..4] TEMT interrupt enable                                              */
-        __IM  uint32_t          : 3;
+        uint32_t          : 3;
         __IOM uint32_t ABEOIE   : 1;            /*!< [8..8] ABE0 interrupt enable                                              */
         __IOM uint32_t ABTOIE   : 1;            /*!< [9..9] ABT0 interrupt enable                                              */
       } IE_b;
@@ -1821,7 +1821,7 @@ typedef struct {                                /*!< (@ 0x40016000) SN_UART0 Str
       struct {
         __IM  uint32_t INTSTATUS : 1;           /*!< [0..0] Interrupt status                                                   */
         __IM  uint32_t INTID    : 3;            /*!< [3..1] Interrupt ID of RX FIFO                                            */
-        __IM  uint32_t          : 2;
+        uint32_t          : 2;
         __IM  uint32_t FIFOEN   : 2;            /*!< [7..6] Equal to FIFOEN bits in USARTn_FIFOCTRL register                   */
         __IM  uint32_t ABEOIF   : 1;            /*!< [8..8] ABEO interrupt flag                                                */
         __IM  uint32_t ABTOIF   : 1;            /*!< [9..9] ABTO interrupt flag                                                */
@@ -1833,7 +1833,7 @@ typedef struct {                                /*!< (@ 0x40016000) SN_UART0 Str
       
       struct {
         __OM  uint32_t FIFOEN   : 1;            /*!< [0..0] FIFO enable                                                        */
-        __IM  uint32_t          : 5;
+        uint32_t          : 5;
         __OM  uint32_t RXTL     : 2;            /*!< [7..6] RX trigger level                                                   */
       } FIFOCTRL_b;
     } ;
@@ -1884,7 +1884,7 @@ typedef struct {                                /*!< (@ 0x40016000) SN_UART0 Str
       __IOM uint32_t START      : 1;            /*!< [0..0] Auto-baud run bit                                                  */
       __IOM uint32_t MODE       : 1;            /*!< [1..1] Auto-baud mode selection                                           */
       __IOM uint32_t AUTORESTART : 1;           /*!< [2..2] Restart mode selection                                             */
-      __IM  uint32_t            : 5;
+      uint32_t            : 5;
       __OM  uint32_t ABEOIFC    : 1;            /*!< [8..8] Clear ABEOIF flag                                                  */
       __OM  uint32_t ABTOIFC    : 1;            /*!< [9..9] Clear ABTOIF flag                                                  */
     } ABCTRL_b;
@@ -1908,7 +1908,7 @@ typedef struct {                                /*!< (@ 0x40016000) SN_UART0 Str
     struct {
       __IOM uint32_t UARTEN     : 1;            /*!< [0..0] USART enable                                                       */
       __IOM uint32_t MODE       : 3;            /*!< [3..1] UART mode                                                          */
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IOM uint32_t RXEN       : 1;            /*!< [6..6] RX enable                                                          */
       __IOM uint32_t TXEN       : 1;            /*!< [7..7] TX enable                                                          */
     } CTRL_b;
@@ -1979,9 +1979,9 @@ typedef struct {                                /*!< (@ 0x40014000) SN_UART1 Str
         __IOM uint32_t RDAIE    : 1;            /*!< [0..0] RDA interrupt enable                                               */
         __IOM uint32_t THREIE   : 1;            /*!< [1..1] THRE interrupt enable                                              */
         __IOM uint32_t RLSIE    : 1;            /*!< [2..2] RLS interrupt enable                                               */
-        __IM  uint32_t          : 1;
+        uint32_t          : 1;
         __IOM uint32_t TEMTIE   : 1;            /*!< [4..4] TEMT interrupt enable                                              */
-        __IM  uint32_t          : 3;
+        uint32_t          : 3;
         __IOM uint32_t ABEOIE   : 1;            /*!< [8..8] ABE0 interrupt enable                                              */
         __IOM uint32_t ABTOIE   : 1;            /*!< [9..9] ABT0 interrupt enable                                              */
       } IE_b;
@@ -1995,7 +1995,7 @@ typedef struct {                                /*!< (@ 0x40014000) SN_UART1 Str
       struct {
         __IM  uint32_t INTSTATUS : 1;           /*!< [0..0] Interrupt status                                                   */
         __IM  uint32_t INTID    : 3;            /*!< [3..1] Interrupt ID of RX FIFO                                            */
-        __IM  uint32_t          : 2;
+        uint32_t          : 2;
         __IM  uint32_t FIFOEN   : 2;            /*!< [7..6] Equal to FIFOEN bits in USARTn_FIFOCTRL register                   */
         __IM  uint32_t ABEOIF   : 1;            /*!< [8..8] ABEO interrupt flag                                                */
         __IM  uint32_t ABTOIF   : 1;            /*!< [9..9] ABTO interrupt flag                                                */
@@ -2007,7 +2007,7 @@ typedef struct {                                /*!< (@ 0x40014000) SN_UART1 Str
       
       struct {
         __OM  uint32_t FIFOEN   : 1;            /*!< [0..0] FIFO enable                                                        */
-        __IM  uint32_t          : 5;
+        uint32_t          : 5;
         __OM  uint32_t RXTL     : 2;            /*!< [7..6] RX trigger level                                                   */
       } FIFOCTRL_b;
     } ;
@@ -2058,7 +2058,7 @@ typedef struct {                                /*!< (@ 0x40014000) SN_UART1 Str
       __IOM uint32_t START      : 1;            /*!< [0..0] Auto-baud run bit                                                  */
       __IOM uint32_t MODE       : 1;            /*!< [1..1] Auto-baud mode selection                                           */
       __IOM uint32_t AUTORESTART : 1;           /*!< [2..2] Restart mode selection                                             */
-      __IM  uint32_t            : 5;
+      uint32_t            : 5;
       __OM  uint32_t ABEOIFC    : 1;            /*!< [8..8] Clear ABEOIF flag                                                  */
       __OM  uint32_t ABTOIFC    : 1;            /*!< [9..9] Clear ABTOIF flag                                                  */
     } ABCTRL_b;
@@ -2082,7 +2082,7 @@ typedef struct {                                /*!< (@ 0x40014000) SN_UART1 Str
     struct {
       __IOM uint32_t UARTEN     : 1;            /*!< [0..0] USART enable                                                       */
       __IOM uint32_t MODE       : 3;            /*!< [3..1] UART mode                                                          */
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IOM uint32_t RXEN       : 1;            /*!< [6..6] RX enable                                                          */
       __IOM uint32_t TXEN       : 1;            /*!< [7..7] TX enable                                                          */
     } CTRL_b;
@@ -2153,9 +2153,9 @@ typedef struct {                                /*!< (@ 0x40012000) SN_UART2 Str
         __IOM uint32_t RDAIE    : 1;            /*!< [0..0] RDA interrupt enable                                               */
         __IOM uint32_t THREIE   : 1;            /*!< [1..1] THRE interrupt enable                                              */
         __IOM uint32_t RLSIE    : 1;            /*!< [2..2] RLS interrupt enable                                               */
-        __IM  uint32_t          : 1;
+        uint32_t          : 1;
         __IOM uint32_t TEMTIE   : 1;            /*!< [4..4] TEMT interrupt enable                                              */
-        __IM  uint32_t          : 3;
+        uint32_t          : 3;
         __IOM uint32_t ABEOIE   : 1;            /*!< [8..8] ABE0 interrupt enable                                              */
         __IOM uint32_t ABTOIE   : 1;            /*!< [9..9] ABT0 interrupt enable                                              */
       } IE_b;
@@ -2169,7 +2169,7 @@ typedef struct {                                /*!< (@ 0x40012000) SN_UART2 Str
       struct {
         __IM  uint32_t INTSTATUS : 1;           /*!< [0..0] Interrupt status                                                   */
         __IM  uint32_t INTID    : 3;            /*!< [3..1] Interrupt ID of RX FIFO                                            */
-        __IM  uint32_t          : 2;
+        uint32_t          : 2;
         __IM  uint32_t FIFOEN   : 2;            /*!< [7..6] Equal to FIFOEN bits in USARTn_FIFOCTRL register                   */
         __IM  uint32_t ABEOIF   : 1;            /*!< [8..8] ABEO interrupt flag                                                */
         __IM  uint32_t ABTOIF   : 1;            /*!< [9..9] ABTO interrupt flag                                                */
@@ -2181,7 +2181,7 @@ typedef struct {                                /*!< (@ 0x40012000) SN_UART2 Str
       
       struct {
         __OM  uint32_t FIFOEN   : 1;            /*!< [0..0] FIFO enable                                                        */
-        __IM  uint32_t          : 5;
+        uint32_t          : 5;
         __OM  uint32_t RXTL     : 2;            /*!< [7..6] RX trigger level                                                   */
       } FIFOCTRL_b;
     } ;
@@ -2232,7 +2232,7 @@ typedef struct {                                /*!< (@ 0x40012000) SN_UART2 Str
       __IOM uint32_t START      : 1;            /*!< [0..0] Auto-baud run bit                                                  */
       __IOM uint32_t MODE       : 1;            /*!< [1..1] Auto-baud mode selection                                           */
       __IOM uint32_t AUTORESTART : 1;           /*!< [2..2] Restart mode selection                                             */
-      __IM  uint32_t            : 5;
+      uint32_t            : 5;
       __OM  uint32_t ABEOIFC    : 1;            /*!< [8..8] Clear ABEOIF flag                                                  */
       __OM  uint32_t ABTOIFC    : 1;            /*!< [9..9] Clear ABTOIF flag                                                  */
     } ABCTRL_b;
@@ -2256,7 +2256,7 @@ typedef struct {                                /*!< (@ 0x40012000) SN_UART2 Str
     struct {
       __IOM uint32_t UARTEN     : 1;            /*!< [0..0] USART enable                                                       */
       __IOM uint32_t MODE       : 3;            /*!< [3..1] UART mode                                                          */
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IOM uint32_t RXEN       : 1;            /*!< [6..6] RX enable                                                          */
       __IOM uint32_t TXEN       : 1;            /*!< [7..7] TX enable                                                          */
     } CTRL_b;
@@ -2293,7 +2293,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
       __IOM uint32_t EP3_NAK_EN : 1;            /*!< [2..2] EP3 NAK Interrupt Enable                                           */
       __IOM uint32_t EP4_NAK_EN : 1;            /*!< [3..3] EP4 NAK Interrupt Enable                                           */
       __IOM uint32_t EPN_ACK_EN : 1;            /*!< [4..4] EPN ACK Interrupt Enable                                           */
-      __IM  uint32_t            : 23;
+      uint32_t            : 23;
       __IOM uint32_t BUSWK_IE   : 1;            /*!< [28..28] USB Bus Wake Up Interrupt Enable                                 */
       __IOM uint32_t USB_IE     : 1;            /*!< [29..29] USB Event Interrupt Enable                                       */
       __IOM uint32_t USB_SOF_IE : 1;            /*!< [30..30] USB SOF Interrupt Enable                                         */
@@ -2309,12 +2309,12 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
       __IM  uint32_t EP2_NAK    : 1;            /*!< [1..1] Endpoint 2 NAK transaction flag                                    */
       __IM  uint32_t EP3_NAK    : 1;            /*!< [2..2] Endpoint 3 NAK transaction flag                                    */
       __IM  uint32_t EP4_NAK    : 1;            /*!< [3..3] Endpoint 4 NAK transaction flag                                    */
-      __IM  uint32_t            : 4;
+      uint32_t            : 4;
       __IM  uint32_t EP1_ACK    : 1;            /*!< [8..8] Endpoint 1 ACK transaction flag                                    */
       __IM  uint32_t EP2_ACK    : 1;            /*!< [9..9] Endpoint 2 ACK transaction flag                                    */
       __IM  uint32_t EP3_ACK    : 1;            /*!< [10..10] Endpoint 3 ACK transaction flag                                  */
       __IM  uint32_t EP4_ACK    : 1;            /*!< [11..11] Endpoint 4 ACK transaction flag                                  */
-      __IM  uint32_t            : 5;
+      uint32_t            : 5;
       __IM  uint32_t ERR_TIMEOUT : 1;           /*!< [17..17] Timeout Status                                                   */
       __IM  uint32_t ERR_SETUP  : 1;            /*!< [18..18] Wrong Setup data received                                        */
       __IM  uint32_t EP0_OUT_STALL : 1;         /*!< [19..19] EP0 OUT STALL transaction                                        */
@@ -2325,7 +2325,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
       __IM  uint32_t EP0_PRESETUP : 1;          /*!< [24..24] EP0 Setup Token Packet Flag                                      */
       __IM  uint32_t BUS_WAKEUP : 1;            /*!< [25..25] Bus Wakeup Flag                                                  */
       __IM  uint32_t USB_SOF    : 1;            /*!< [26..26] USB SOF packet received flag                                     */
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IM  uint32_t BUS_RESUME : 1;            /*!< [29..29] USB Bus Resume signal flag                                       */
       __IM  uint32_t BUS_SUSPEND : 1;           /*!< [30..30] USB Bus Suspend signal flag                                      */
       __IM  uint32_t BUS_RESET  : 1;            /*!< [31..31] USB Bus Reset signal flag                                        */
@@ -2341,12 +2341,12 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
       __OM  uint32_t EP2_NAKC   : 1;            /*!< [1..1] EP2 NAK clear bit                                                  */
       __OM  uint32_t EP3_NAKC   : 1;            /*!< [2..2] EP3 NAK clear bit                                                  */
       __OM  uint32_t EP4_NAKC   : 1;            /*!< [3..3] EP4 NAK clear bit                                                  */
-      __IM  uint32_t            : 4;
+      uint32_t            : 4;
       __OM  uint32_t EP1_ACKC   : 1;            /*!< [8..8] EP1 ACK clear bit                                                  */
       __OM  uint32_t EP2_ACKC   : 1;            /*!< [9..9] EP2 ACK clear bit                                                  */
       __OM  uint32_t EP3_ACKC   : 1;            /*!< [10..10] EP3 ACK clear bit                                                */
       __OM  uint32_t EP4_ACKC   : 1;            /*!< [11..11] EP4 ACK clear bit                                                */
-      __IM  uint32_t            : 5;
+      uint32_t            : 5;
       __OM  uint32_t ERR_TIMEOUTC : 1;          /*!< [17..17] Timeout Error clear bit                                          */
       __OM  uint32_t ERR_SETUPC : 1;            /*!< [18..18] Error Setup clear bit                                            */
       __OM  uint32_t EP0_OUT_STALLC : 1;        /*!< [19..19] EP0 OUT STALL clear bit                                          */
@@ -2357,9 +2357,9 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
       __OM  uint32_t EP0_PRESETUPC : 1;         /*!< [24..24] EP0 PRESETUP clear bit                                           */
       __OM  uint32_t BUS_WAKEUPC : 1;           /*!< [25..25] Bus Wakeup clear bit                                             */
       __OM  uint32_t USB_SOFC   : 1;            /*!< [26..26] USB SOF clear bit                                                */
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __OM  uint32_t BUS_RESUMEC : 1;           /*!< [29..29] USB Bus Resume clear bit                                         */
-      __IM  uint32_t            : 1;
+      uint32_t            : 1;
       __OM  uint32_t BUS_RESETC : 1;            /*!< [31..31] USB Bus Reset clear bit                                          */
     } INSTSC_b;
   } ;
@@ -2380,7 +2380,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
       __IOM uint32_t EP2_DIR    : 1;            /*!< [1..1] Endpoint 2 IN/OUT direction setting                                */
       __IOM uint32_t EP3_DIR    : 1;            /*!< [2..2] Endpoint 3 IN/OUT direction setting                                */
       __IOM uint32_t EP4_DIR    : 1;            /*!< [3..3] Endpoint 4 IN/OUT direction setting                                */
-      __IM  uint32_t            : 22;
+      uint32_t            : 22;
       __IOM uint32_t DIS_PDEN   : 1;            /*!< [26..26] Enable internal D+ and D- 175k pull-down resistor                */
       __IOM uint32_t ESD_EN     : 1;            /*!< [27..27] Enable USB anti-ESD protection                                   */
       __IOM uint32_t SIE_EN     : 1;            /*!< [28..28] USB Serial Interface Engine Enable                               */
@@ -2405,7 +2405,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
     
     struct {
       __IOM uint32_t ENDP_CNT   : 7;            /*!< [6..0] Endpoint byte count                                                */
-      __IM  uint32_t            : 20;
+      uint32_t            : 20;
       __IOM uint32_t OUT_STALL_EN : 1;          /*!< [27..27] Enable EP0 OUT STALL handshake                                   */
       __IOM uint32_t IN_STALL_EN : 1;           /*!< [28..28] Enable EP0 IN STALL handshake                                    */
       __IOM uint32_t ENDP_STATE : 2;            /*!< [30..29] Endpoint Handshake State                                         */
@@ -2418,7 +2418,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
     
     struct {
       __IOM uint32_t ENDP_CNT   : 7;            /*!< [6..0] Endpoint byte count                                                */
-      __IM  uint32_t            : 22;
+      uint32_t            : 22;
       __IOM uint32_t ENDP_STATE : 2;            /*!< [30..29] Endpoint Handshake State                                         */
       __IOM uint32_t ENDP_EN    : 1;            /*!< [31..31] Endpoint 1 Function enable bit                                   */
     } EP1CTL_b;
@@ -2429,7 +2429,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
     
     struct {
       __IOM uint32_t ENDP_CNT   : 7;            /*!< [6..0] Endpoint byte count                                                */
-      __IM  uint32_t            : 22;
+      uint32_t            : 22;
       __IOM uint32_t ENDP_STATE : 2;            /*!< [30..29] Endpoint Handshake State                                         */
       __IOM uint32_t ENDP_EN    : 1;            /*!< [31..31] Endpoint 2 Function enable bit                                   */
     } EP2CTL_b;
@@ -2440,7 +2440,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
     
     struct {
       __IOM uint32_t ENDP_CNT   : 7;            /*!< [6..0] Endpoint byte count                                                */
-      __IM  uint32_t            : 22;
+      uint32_t            : 22;
       __IOM uint32_t ENDP_STATE : 2;            /*!< [30..29] Endpoint Handshake State                                         */
       __IOM uint32_t ENDP_EN    : 1;            /*!< [31..31] Endpoint 3 Function enable bit                                   */
     } EP3CTL_b;
@@ -2451,7 +2451,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
     
     struct {
       __IOM uint32_t ENDP_CNT   : 7;            /*!< [6..0] Endpoint byte count                                                */
-      __IM  uint32_t            : 22;
+      uint32_t            : 22;
       __IOM uint32_t ENDP_STATE : 2;            /*!< [30..29] Endpoint Handshake State                                         */
       __IOM uint32_t ENDP_EN    : 1;            /*!< [31..31] Endpoint 4 Function enable bit                                   */
     } EP4CTL_b;
@@ -2474,7 +2474,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
     __IOM uint32_t EP1BUFOS;                    /*!< (@ 0x00000048) Offset:0x48 USB Endpoint 1 Buffer Offset Register          */
     
     struct {
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IOM uint32_t OFFSET     : 6;            /*!< [7..2] The offset address for endpoint data buffer                        */
     } EP1BUFOS_b;
   } ;
@@ -2483,7 +2483,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
     __IOM uint32_t EP2BUFOS;                    /*!< (@ 0x0000004C) Offset:0x4C USB Endpoint 2 Buffer Offset Register          */
     
     struct {
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IOM uint32_t OFFSET     : 6;            /*!< [7..2] The offset address for endpoint data buffer                        */
     } EP2BUFOS_b;
   } ;
@@ -2492,7 +2492,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
     __IOM uint32_t EP3BUFOS;                    /*!< (@ 0x00000050) Offset:0x50 USB Endpoint 3 Buffer Offset Register          */
     
     struct {
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IOM uint32_t OFFSET     : 6;            /*!< [7..2] The offset address for endpoint data buffer                        */
     } EP3BUFOS_b;
   } ;
@@ -2501,7 +2501,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
     __IOM uint32_t EP4BUFOS;                    /*!< (@ 0x00000054) Offset:0x54 USB Endpoint 4 Buffer Offset Register          */
     
     struct {
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IOM uint32_t OFFSET     : 6;            /*!< [7..2] The offset address for endpoint data buffer                        */
     } EP4BUFOS_b;
   } ;
@@ -2540,7 +2540,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
       __IOM uint32_t SDAM       : 1;            /*!< [1..1] PS/2 SDA mode control bit                                          */
       __IOM uint32_t SCK        : 1;            /*!< [2..2] PS/2 SCK data buffer                                               */
       __IOM uint32_t SDA        : 1;            /*!< [3..3] PS/2 SDA data buffer                                               */
-      __IM  uint32_t            : 27;
+      uint32_t            : 27;
       __IOM uint32_t PS2ENB     : 1;            /*!< [31..31] PS/2 internal 5kohm pull-up resistor control bit                 */
     } PS2CTL_b;
   } ;
@@ -2550,7 +2550,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
     __IOM uint32_t RWADDR;                      /*!< (@ 0x00000078) Offset:0x78 USB Read/Write Address Register                */
     
     struct {
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IOM uint32_t RWADDR     : 6;            /*!< [7..2] USB FIFO address to be read or written from/to USB FIFO            */
     } RWADDR_b;
   } ;
@@ -2576,7 +2576,7 @@ typedef struct {                                /*!< (@ 0x4005C000) SN_USB Struc
     __IOM uint32_t RWADDR2;                     /*!< (@ 0x00000084) Offset:0x84 USB Read/Write Address Register 2              */
     
     struct {
-      __IM  uint32_t            : 2;
+      uint32_t            : 2;
       __IOM uint32_t RWADDR     : 6;            /*!< [7..2] USB FIFO address to be read or written from/to USB FIFO            */
     } RWADDR2_b;
   } ;
@@ -2617,7 +2617,7 @@ typedef struct {                                /*!< (@ 0x40062000) SN_FLASH Str
     
     struct {
       __IOM uint32_t LPMODE     : 4;            /*!< [3..0] Flash Low Power mode selection bit                                 */
-      __IM  uint32_t            : 12;
+      uint32_t            : 12;
       __OM  uint32_t FMCKEY     : 16;           /*!< [31..16] FMC verify key                                                   */
     } LPCTRL_b;
   } ;
@@ -2627,7 +2627,7 @@ typedef struct {                                /*!< (@ 0x40062000) SN_FLASH Str
     
     struct {
       __IM  uint32_t BUSY       : 1;            /*!< [0..0] Busy flag                                                          */
-      __IM  uint32_t            : 1;
+      uint32_t            : 1;
       __IOM uint32_t ERR        : 1;            /*!< [2..2] Erase/Error flag                                                   */
     } STATUS_b;
   } ;
@@ -2639,7 +2639,7 @@ typedef struct {                                /*!< (@ 0x40062000) SN_FLASH Str
       __IOM uint32_t PG         : 1;            /*!< [0..0] Flash program mode chosen bit                                      */
       __IOM uint32_t PER        : 1;            /*!< [1..1] Page erase mode chosen bit                                         */
       __IOM uint32_t MER        : 1;            /*!< [2..2] Mass erase mode chosen bit                                         */
-      __IM  uint32_t            : 3;
+      uint32_t            : 3;
       __IOM uint32_t START      : 1;            /*!< [6..6] Start erase/program operation                                      */
       __IOM uint32_t CHK        : 1;            /*!< [7..7] Checksum calculation chosen                                        */
     } CTRL_b;

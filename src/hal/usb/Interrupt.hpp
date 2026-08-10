@@ -70,8 +70,8 @@ namespace quartz::hal::usb
         return static_cast<std::uint32_t>(interruptEnable);
     }
 
-    constexpr bool hasInterrupt(const std::uint32_t status, const Interrupt interrupt) noexcept
+    constexpr bool hasInterrupt(const Interrupt status, const Interrupt interrupt) noexcept
     {
-        return (status & value(interrupt)) != 0u;
+        return value(status & interrupt) != 0u;
     }
 }

@@ -1,6 +1,7 @@
-#include "Endpoint.hpp"
-
+#include "hal/usb/Endpoint.hpp"
 #include "rt/Concurrency.hpp"
+#include "debug/Panic.hpp"
+#include "cppmcu.h"
 
 namespace quartz::hal::usb
 {
@@ -18,42 +19,39 @@ namespace quartz::hal::usb
     volatile RWRegister& Endpoint::R_REG = *reinterpret_cast<volatile RWRegister*>(&SN_USB->RWADDR);
     volatile RWRegister& Endpoint::W_REG = *reinterpret_cast<volatile RWRegister*>(&SN_USB->RWADDR2);
 
-    constexpr Endpoint::Endpoint(const std::uint8_t num, const EndpointDirection direction, const std::uint8_t offset, const std::uint8_t maxSize) noexcept :
-        EndpointNumber(num),
+    Endpoint::Endpoint(
+        const EndpointNumber number,
+        const EndpointDirection direction,
+        const std::uint8_t offset,
+        const std::uint8_t maxSize
+    ) noexcept :
+        Number(number),
         Direction(direction),
         MemoryOffset(offset),
         MaxSize(maxSize)
     {
-        HARD_ASSERTC((MemoryOffset & 0x3u) == 0u, PanicReason::ENDPT_OFF_NALIGN);
-        HARD_ASSERTC((MaxSize & 0x3u) == 0u, PanicReason::ENDPT_SZ_NALIGN);
-        HARD_ASSERTC(EndpointNumber <= 4, PanicReason::ENDPT_INVALID_NUM);
+        HARD_ASSERTC(!(direction == EndpointDirection::Both && Number == EndpointNumber::EP0), PanicReason::ENDPT_INVALID_DIREC);
+        HARD_ASSERTC(Number != EndpointNumber::EP0, PanicReason::ENDPT_EP0_NOT_CTRL);
+        HARD_ASSERTC(Number <= EndpointNumber::EP4, PanicReason::ENDPT_INVALID_NUM);
         HARD_ASSERTC((MemoryOffset & 0x3u) == 0u, PanicReason::ENDPT_OFF_NALIGN);
         HARD_ASSERTC((MaxSize & 0x3u) == 0u, PanicReason::ENDPT_SZ_NALIGN);
         HARD_ASSERTC(MaxSize <= 64u, PanicReason::ENDPT_SZ_EXCEED);
         HARD_ASSERTC(static_cast<std::uint16_t>(MemoryOffset) + MaxSize <= 256u, PanicReason::ENDPT_SRAM_EXCEED);
-
-        if (EndpointNumber == 0)
-            HARD_ASSERTC(MemoryOffset == 0, PanicReason::ENDPT_EP0_OFFSET);
-
-        if (num != 0 && direction == EndpointDirection::Both)
-        {
-            HARD_ASSERTC(false, PanicReason::ENDPT_NON0_DIR_BOTH);
-        }
     }
 
-    void Endpoint::enable() noexcept
+    void Endpoint::enable() const noexcept
     {
-        _getEndpointControl(EndpointNumber) = ENDPOINT_ENABLE;
+        _getEndpointControl(Number) = ENDPOINT_ENABLE;
     }
 
-    void Endpoint::disable() noexcept
+    void Endpoint::disable() const noexcept
     {
-        _getEndpointControl(EndpointNumber) = 0;
+        _getEndpointControl(Number) = 0;
     }
 
     EndpointState Endpoint::getState() const noexcept
     {
-        const std::uint32_t state = _getEndpointControl(EndpointNumber) & ENDPOINT_STATE_MASK;
+        const std::uint32_t state = _getEndpointControl(Number) & ENDPOINT_STATE_MASK;
         if ((state & 0x40000000u) != 0u)
             return EndpointState::Stall;
         return static_cast<EndpointState>(state);
@@ -84,23 +82,25 @@ namespace quartz::hal::usb
         return Direction == EndpointDirection::Out || Direction == EndpointDirection::Both;
     }
 
-    void Endpoint::armIn(const std::uint8_t size) noexcept
+    void Endpoint::armIn(const std::size_t size) const noexcept
     {
         HARD_ASSERTC(isIn(), PanicReason::ENDPT_NIN_CFG);
+        HARD_ASSERTC(isIdle(), PanicReason::ENDPT_NOT_IDLE);
         HARD_ASSERTC(size <= MaxSize, PanicReason::ENDPT_INARM_SZ_EXCEED);
         // Bits 6:0 == Size of data to be transmitted (in bytes)
-        _getEndpointControl(EndpointNumber) = ENDPOINT_READY | (size & 0x7Fu);
+        _getEndpointControl(Number) = ENDPOINT_READY | (size & 0x7Fu);
     }
 
-    void Endpoint::armOut() noexcept
+    void Endpoint::armOut() const noexcept
     {
         HARD_ASSERTC(isOut(), PanicReason::ENDPT_NOUT_CFG);
-        _getEndpointControl(EndpointNumber) = ENDPOINT_READY;
+        HARD_ASSERTC(isIdle(), PanicReason::ENDPT_NOT_IDLE);
+        _getEndpointControl(Number) = ENDPOINT_READY;
     }
 
-    void Endpoint::stall() noexcept
+    void Endpoint::stall() const noexcept
     {
-        _getEndpointControl(EndpointNumber) = ENDPOINT_STALL;
+        _getEndpointControl(Number) = ENDPOINT_STALL;
     }
 
     std::uint8_t Endpoint::getMemoryOffset() const noexcept
@@ -108,13 +108,14 @@ namespace quartz::hal::usb
         return MemoryOffset;
     }
 
-    std::uint8_t Endpoint::getMaxSize() const noexcept
+    std::size_t Endpoint::getMaxSize() const noexcept
     {
         return MaxSize;
     }
 
     std::uint32_t Endpoint::read32() const noexcept
     {
+        HARD_ASSERTC(isIdle(), PanicReason::ENDPT_NOT_IDLE);
         HARD_ASSERTC(isOut(), PanicReason::ENDPT_NOUT_CFG);
         std::uint32_t value;
         rt::Concurrency::executeInCriticalSection([this, &value]()
@@ -129,8 +130,9 @@ namespace quartz::hal::usb
         return value;
     }
 
-    void Endpoint::write32(const std::uint32_t value) noexcept
+    void Endpoint::write32(const std::uint32_t value) const noexcept
     {
+        HARD_ASSERTC(isIdle(), PanicReason::ENDPT_NOT_IDLE);
         HARD_ASSERTC(isIn(), PanicReason::ENDPT_NIN_CFG);
         rt::Concurrency::executeInCriticalSection([this, value]()
         {
@@ -142,20 +144,18 @@ namespace quartz::hal::usb
         });
     }
 
-    void Endpoint::readTo(void* buffer, const std::uint8_t size) const noexcept
+    void Endpoint::readTo(const std::span<std::byte> buff) const noexcept
     {
+        HARD_ASSERTC(isIdle(), PanicReason::ENDPT_NOT_IDLE);
         HARD_ASSERTC(isOut(), PanicReason::ENDPT_NOUT_CFG);
-        HARD_ASSERTC(buffer != nullptr || size == 0, PanicReason::ENDPT_READ_NUL_BUF);
-        HARD_ASSERTC(size <= MaxSize, PanicReason::ENDPT_READ_SZ_EXCEED);
-
-        rt::Concurrency::executeInCriticalSection([this, buffer, size]()
+        HARD_ASSERTC(buff.data() != nullptr || buff.size() == 0, PanicReason::ENDPT_READ_NUL_BUF);
+        HARD_ASSERTC(buff.size() <= MaxSize, PanicReason::ENDPT_READ_SZ_EXCEED);
+        rt::Concurrency::executeInCriticalSection([this, buff]()
         {
             HARD_ASSERTC((R_REG.Status & FIFO_READ_BUSY) == 0u, PanicReason::USB_RREG_BUSY);
-
-            auto* destination = static_cast<std::uint8_t*>(buffer);
-            const std::uint8_t words = size / sizeof(std::uint32_t);
-            const std::uint8_t remainingBytes = size % sizeof(std::uint32_t);
-
+            auto* destination = reinterpret_cast<std::uint8_t*>(buff.data());
+            const std::uint8_t words = buff.size() / sizeof(std::uint32_t);
+            const std::uint8_t remainingBytes = buff.size() % sizeof(std::uint32_t);
             for (std::uint8_t i = 0; i < words; ++i)
             {
                 R_REG.Address = MemoryOffset + i * sizeof(std::uint32_t);
@@ -176,24 +176,22 @@ namespace quartz::hal::usb
         });
     }
 
-    void Endpoint::writeFrom(const void* buffer, const std::uint8_t size) noexcept
+    void Endpoint::writeFrom(const std::span<const std::byte> buff) const noexcept
     {
+        HARD_ASSERTC(isIdle(), PanicReason::ENDPT_NOT_IDLE);
         HARD_ASSERTC(isIn(), PanicReason::ENDPT_NIN_CFG);
-        HARD_ASSERTC(buffer != nullptr || size == 0, PanicReason::ENDPT_WRITE_NUL_BUF);
-        HARD_ASSERTC(size <= MaxSize, PanicReason::ENDPT_WRITE_SZ_EXCEED);
-        rt::Concurrency::executeInCriticalSection([this, buffer, size]()
+        HARD_ASSERTC(buff.data() != nullptr || buff.size() == 0, PanicReason::ENDPT_WRITE_NUL_BUF);
+        HARD_ASSERTC(buff.size() <= MaxSize, PanicReason::ENDPT_WRITE_SZ_EXCEED);
+        rt::Concurrency::executeInCriticalSection([this, buff]()
         {
             HARD_ASSERTC((W_REG.Status & FIFO_WRITE_BUSY) == 0u, PanicReason::USB_WREG_BUSY);
-
-            const auto* source = static_cast<const std::uint8_t*>(buffer);
-            const std::uint8_t words = size / sizeof(std::uint32_t);
-            const std::uint8_t remainingBytes = size % sizeof(std::uint32_t);
-
+            const auto* source = reinterpret_cast<const std::uint8_t*>(buff.data());
+            const std::uint8_t words = buff.size() / sizeof(std::uint32_t);
+            const std::uint8_t remainingBytes = buff.size() % sizeof(std::uint32_t);
             for (std::uint8_t i = 0; i < words; ++i)
             {
                 std::uint32_t word;
                 std::memcpy(&word, source + i * sizeof(std::uint32_t), sizeof(word));
-
                 W_REG.Address = MemoryOffset + i * sizeof(std::uint32_t);
                 W_REG.Data = word;
                 W_REG.Status = FIFO_WRITE_BUSY;
@@ -204,7 +202,6 @@ namespace quartz::hal::usb
             {
                 std::uint32_t word = 0;
                 std::memcpy(&word, source + words * sizeof(std::uint32_t), remainingBytes);
-
                 W_REG.Address = MemoryOffset + words * sizeof(std::uint32_t);
                 W_REG.Data = word;
                 W_REG.Status = FIFO_WRITE_BUSY;
@@ -216,45 +213,38 @@ namespace quartz::hal::usb
     std::uint8_t Endpoint::getReceivedSize() const noexcept
     {
         HARD_ASSERTC(isOut(), PanicReason::ENDPT_NOUT_CFG);
-        return static_cast<std::uint8_t>(_getEndpointControl(EndpointNumber) & 0x7Fu);
+        return static_cast<std::uint8_t>(_getEndpointControl(Number) & 0x7Fu);
     }
 
-    inline bool Endpoint::isEndpointValid(const std::uint8_t endpointNumber) noexcept
+    inline bool Endpoint::isEndpointValid(const EndpointNumber number) noexcept
     {
-        return endpointNumber < MaxEndpoints;
+        return value(number) < MAX_ENDPOINTS;
     }
 
-    inline volatile uint32_t& Endpoint::_getEndpointControl(const std::uint8_t endpointNumber) noexcept
+    inline volatile std::uint32_t& Endpoint::_getEndpointControl(const EndpointNumber number) noexcept
     {
-        HARD_ASSERTC(isEndpointValid(endpointNumber), PanicReason::ENDPT_INVALID);
-        return *reinterpret_cast<volatile uint32_t*>(reinterpret_cast<std::uintptr_t>(&SN_USB->EP0CTL) + (endpointNumber * sizeof(uint32_t)));
+        HARD_ASSERTC(isEndpointValid(number), PanicReason::ENDPT_INVALID);
+        return (&SN_USB->EP0CTL)[value(number)];
     }
 
-    void Endpoint::configure() noexcept
+    void Endpoint::configure() const noexcept
     {
-        if (EndpointNumber != 0) 
-        {
-            const std::uint32_t directionBit = 1u << (EndpointNumber + 1u);
-            // Even tho we have EndpointDirection::Both, it's unreachable for EndpointNumber != 0.
-            // So we can just do a simple else and not worry about the Both case.
-            // Assert just in case.
-            HARD_ASSERTC(Direction != EndpointDirection::Both, PanicReason::ENDPT_NON0_DIR_BOTH);
-            if (Direction == EndpointDirection::Out)
-                SN_USB->CFG |= directionBit;
-            else
-                SN_USB->CFG &= ~directionBit;
-            enable();
-            if (Direction == EndpointDirection::Out) armOut();
-        }
-    }
-
-    void Endpoint::deconfigure() noexcept
-    {
-        if (EndpointNumber != 0) 
-        {
-            disable();
-            const std::uint32_t directionBit = 1u << (EndpointNumber + 1u);
+        if (Number == EndpointNumber::EP0)
+            return;
+        const std::uint32_t directionBit = 1u << (value(Number) + 1u);
+        if (Direction == EndpointDirection::Out)
+            SN_USB->CFG |= directionBit;
+        else
             SN_USB->CFG &= ~directionBit;
-        }
+        enable();
+    }
+
+    void Endpoint::deconfigure() const noexcept
+    {
+        if (Number == EndpointNumber::EP0)
+            return;
+        disable();
+        const std::uint32_t directionBit = 1u << (value(Number) + 1u);
+        SN_USB->CFG &= ~directionBit;
     }
 }

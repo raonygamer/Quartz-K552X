@@ -1,11 +1,10 @@
-#include "System.hpp"
-#include "timer/HighResolutionTimer.hpp"
-#include "timer/Timer.hpp"
-#include "usb/USB.hpp"
+#include "hal/System.hpp"
 #include "debug/Panic.hpp"
+#include "hal/timer/HighResolutionTimer.hpp"
 #include "kb/Matrix.hpp"
-#include "../usb/Interrupt.hpp"
-#include "../usb/Device.hpp"
+#include "hal/usb/Interrupt.hpp"
+#include "hal/usb/Controller.hpp"
+#include "usb/Device.hpp"
 
 namespace quartz::hal {
     void System::initializeSystemTick() noexcept
@@ -18,7 +17,8 @@ namespace quartz::hal {
 
     void System::teardownEverything() noexcept
     {
-        hal::USB::teardownForBootloader();
+        quartz::usb::Device::reset();
+        usb::Controller::reset();
 
         SysTick->CTRL = 0u;
         SysTick->LOAD = 0u;
@@ -54,11 +54,11 @@ namespace quartz::hal {
 
     void System::reset() noexcept
     {
-        quartz::hal::HighResolutionTimer::waitMilliseconds(100);
-        quartz::debug::Panic::blinkDebuggingLeds(25, 10);
+        HighResolutionTimer::waitMilliseconds(100);
+        debug::Panic::blinkDebuggingLeds(25, 10);
         teardownEverything();
-        quartz::hal::HighResolutionTimer::waitMilliseconds(100);
-        quartz::debug::Panic::setDebuggingLedState(false);
+        HighResolutionTimer::waitMilliseconds(100);
+        debug::Panic::setDebuggingLedState(false);
         NVIC_SystemReset();
         __builtin_unreachable();
     }
@@ -71,7 +71,7 @@ extern "C" void SysTick_Handler()
 
 extern "C" void USB_IRQHandler()
 {
-    quartz::usb::Device::handleInterrupt();
+    quartz::usb::Device::handleInterrupt(quartz::hal::usb::Controller::getInterruptStatus());
 }
 
 extern "C" void HardFault_Handler()

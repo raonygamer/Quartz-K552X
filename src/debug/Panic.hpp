@@ -30,6 +30,21 @@ namespace quartz::debug {
             ENDPT_SZ_EXCEED       = 0x0010,
             ENDPT_INVALID         = 0x0011,
             ENDPT_NON0_DIR_BOTH   = 0x0012,
+            TRANS_COUT_BUF_ZLEN   = 0x0013,
+            USB_CTRL_NOT_CONF     = 0x0014,
+            ENDPT_NOT_IDLE        = 0x0015,
+            TRANS_COUT_ACTIVE     = 0x0016,
+            TRANS_COUT_NUL_BUF    = 0x0017,
+            TRANS_CIN_ACTIVE      = 0x0018,
+            TRANS_CIN_NUL_BUF     = 0x0019,
+            TRANS_CIN_BUF_ZLEN    = 0x001A,
+            TRANS_CIN_INACTIVE    = 0x001B,
+            ENDPT_EP0_NOT_CTRL    = 0x001C,
+            ENDPT_INVALID_DIREC   = 0x001D,
+            CTRL_INVALID_STAGE    = 0x001E,
+            CTRL_INVALID_DIREC    = 0x001F,
+            CTRL_PLLESS_REM       = 0x0020,
+            CTRL_INVALID_RECSZ    = 0x0021,
         };
 
         struct State {

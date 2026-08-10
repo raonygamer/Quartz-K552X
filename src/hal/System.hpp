@@ -1,7 +1,4 @@
 #pragma once
-extern "C" {
-    #include "SN32F240B.h"
-}
 
 namespace quartz::hal {
     class System {

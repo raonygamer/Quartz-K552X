@@ -1,9 +1,7 @@
 #include "RGBMatrix.hpp"
 #include "debug/DebugEndpoint.hpp"
 #include "kb/ElectricalMatrix.hpp"
-extern "C" {
-    #include "SN32F240B.h"
-}
+#include "cppmcu.h"
 #include <cstring>
 
 namespace quartz::kb::rgb

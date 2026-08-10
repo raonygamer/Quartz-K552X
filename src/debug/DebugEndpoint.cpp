@@ -1,13 +1,8 @@
 #include "DebugEndpoint.hpp"
-#include "../hal/usb/USB.hpp"
-
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
-
-extern "C" {
-    #include "SN32F240B.h"
-}
+#include "../../include/mcu/cppmcu.h"
 
 namespace quartz::debug {
     namespace {

@@ -1,14 +1,6 @@
 #pragma once
-#include <array>
 #include <cstdint>
-#include <type_traits>
-
-#include "debug/Panic.hpp"
-
-extern "C"
-{
-#include "SN32F240B.h"
-}
+#include <span>
 
 namespace quartz::hal::usb
 {
@@ -18,6 +10,20 @@ namespace quartz::hal::usb
         std::uint32_t Data;
         std::uint32_t Status;
     };
+
+    enum class EndpointNumber : std::uint8_t
+    {
+        EP0 = 0,
+        EP1 = 1,
+        EP2 = 2,
+        EP3 = 3,
+        EP4 = 4
+    };
+
+    constexpr std::uint8_t value(EndpointNumber number) noexcept
+    {
+        return static_cast<std::uint8_t>(number);
+    }
 
     enum class EndpointDirection : std::uint8_t
     {
@@ -36,51 +42,41 @@ namespace quartz::hal::usb
     class Controller;
     class Endpoint
     {
-    private:
         friend class Controller;
-
         static volatile RWRegister& R_REG;
         static volatile RWRegister& W_REG;
-
     public:
-        static constexpr std::uint8_t MaxEndpoints = 5;
-        const std::uint8_t EndpointNumber;
+        static constexpr std::uint8_t MAX_ENDPOINTS = 5;
+        const EndpointNumber Number;
         const EndpointDirection Direction;
         const std::uint8_t MemoryOffset;
         const std::uint8_t MaxSize;
 
         Endpoint() = delete;
-        constexpr Endpoint(const std::uint8_t num, const EndpointDirection direction, const std::uint8_t offset, const std::uint8_t maxSize) noexcept;
-        void enable() noexcept;
-        void disable() noexcept;
+        Endpoint(EndpointNumber number, EndpointDirection direction, std::uint8_t offset, std::uint8_t maxSize) noexcept;
+        void enable() const noexcept;
+        void disable() const noexcept;
         EndpointState getState() const noexcept;
         bool isIdle() const noexcept;
         bool isArmed() const noexcept;
         bool isStalled() const noexcept;
         bool isIn() const noexcept;
         bool isOut() const noexcept;
-        void armIn(const std::uint8_t size) noexcept;
-        void armOut() noexcept;
-        void stall() noexcept;
+        void armIn(std::size_t size) const noexcept;
+        void armOut() const noexcept;
+        void stall() const noexcept;
         std::uint8_t getMemoryOffset() const noexcept;
-        std::uint8_t getMaxSize() const noexcept;
+        std::size_t getMaxSize() const noexcept;
         std::uint32_t read32() const noexcept;
-        void write32(const std::uint32_t value) noexcept;
-        void readTo(void* buffer, const std::uint8_t size) const noexcept;
-        void writeFrom(const void* buffer, const std::uint8_t size) noexcept;
+        void write32(std::uint32_t value) const noexcept;
+        void readTo(std::span<std::byte> buff) const noexcept;
+        void writeFrom(std::span<const std::byte> buff) const noexcept;
         std::uint8_t getReceivedSize() const noexcept;
+        static bool isEndpointValid(EndpointNumber number) noexcept;
 
     private:
-        void configure() noexcept;
-        void deconfigure() noexcept;    
-
-    public:
-        [[gnu::always_inline]]
-        inline static bool isEndpointValid(const std::uint8_t endpointNumber) noexcept;
-
-    private:
-        [[gnu::always_inline]]
-        inline static volatile uint32_t& _getEndpointControl(const std::uint8_t endpointNumber) noexcept;
-
+        void configure() const noexcept;
+        void deconfigure() const noexcept;
+        static volatile uint32_t& _getEndpointControl(EndpointNumber number) noexcept;
     };
 }

@@ -1,6 +1,6 @@
 #include "hal/System.hpp"
 #include "hal/gpio/GPIO.hpp"
-#include "hal/usb/USB.hpp"
+#include "hal/usb/Controller.hpp"
 #include "hal/timer/Timer.hpp"
 #include "debug/DebugEndpoint.hpp"
 #include "usb/Device.hpp"
@@ -248,7 +248,7 @@ extern "C" int main()
         quartz::debug::Panic::blinkDebuggingLeds(25, 10);
         quartz::debug::Panic::setDebuggingLedState(false);
 
-        quartz::usb::Device::initialize();
+        quartz::usb::Device::reset();
 
         if (quartz::usb::Device::waitUntilConfigured(1000)) {
             quartz::debug::DebugEndpoint::printf(
@@ -267,7 +267,8 @@ extern "C" int main()
         quartz::hal::System::toBootloader();
     }
 
-    quartz::usb::Device::initialize();
+    quartz::hal::usb::Controller::initialize();
+    quartz::hal::usb::Controller::connect();
     quartz::usb::Device::waitUntilConfigured();
     quartz::Start();
 }

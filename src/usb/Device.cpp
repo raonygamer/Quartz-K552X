@@ -1,1176 +1,235 @@
-#include "Device.hpp"
+#include "usb/Device.hpp"
 
-#include <algorithm>
-#include <cstdint>
-#include <cstring>
-
-#include "Descriptors.hpp"
-#include "Interrupt.hpp"
-#include "hal/usb/USB.hpp"
-#include "hal/gpio/GPIO.hpp"
-#include "debug/DebugEndpoint.hpp"
-#include "debug/Panic.hpp"
 #include "hal/timer/HighResolutionTimer.hpp"
-#include "kb/KeyboardState.hpp"
-#include "hal/System.hpp"
+#include "hal/usb/Controller.hpp"
+#include "usb/Descriptors.hpp"
+#include "usb/protocol/pipes/TransferPipe.hpp"
+#include "usb/protocol/payloads/StandardRequest.hpp"
+#include "usb/Descriptors.hpp"
 
-#include "hid/BootKeyboardReport.hpp"
-#include "hid/NKROKeyboardReport.hpp"
-#include "quartz/rpc/RPC.hpp"
+namespace quartz::usb
+{
+    DeviceState Device::State = {};
 
-namespace quartz::usb {
-    namespace {
-        constexpr std::uint8_t RequestGetDescriptor    = 0x06;
-        constexpr std::uint8_t RequestSetAddress       = 0x05;
-        constexpr std::uint8_t RequestSetConfiguration = 0x09;
-        constexpr std::uint8_t RequestGetConfiguration = 0x08;
-
-        constexpr std::uint8_t DescriptorDevice        = 0x01;
-        constexpr std::uint8_t DescriptorConfiguration = 0x02;
-        constexpr std::uint8_t DescriptorString        = 0x03;
-        constexpr std::uint8_t DescriptorHID           = 0x21;
-        constexpr std::uint8_t DescriptorReport        = 0x22;
-
-        constexpr std::uint8_t HIDGetIdle      = 0x02;
-        constexpr std::uint8_t HIDGetProtocol  = 0x03;
-        constexpr std::uint8_t HIDSetIdle      = 0x0A;
-        constexpr std::uint8_t HIDSetProtocol  = 0x0B;
-
-        constexpr std::uint8_t HIDBootProtocol   = 0;
-
-        constexpr std::uint8_t HIDInterface = 0;
-        constexpr std::uint8_t HIDSetReport = 0x09;
-        constexpr std::uint8_t HIDReportTypeOutput = 0x02;
-        constexpr std::uint8_t HIDReportTypeFeature = 0x03;
-
-        inline std::array<std::uint8_t, 64> HIDFeatureBuffer {};
-        inline bool BootloaderRebootPending = false;
-        constexpr std::array<std::uint8_t, 8> SonixRebootMagic = {
-            0xAA, 0x55, 0xA5, 0x5A,
-            0xFF, 0x00, 0x33, 0xCC,
-        };
-
-        constexpr std::size_t MaxRPCFrameSize = 512;
-
-        std::array<std::uint8_t, MaxRPCFrameSize> RPCReceiveBuffer{};
-        std::size_t RPCReceiveLength = 0;
-        std::size_t RPCExpectedLength = 0;
+    void Device::reset() noexcept
+    {
+        State = {};
+        proto::ControlPipe::reset();
+        proto::TransferPipe::reset();
     }
 
-    std::array<void(*)(), hal::USB::MaxEndpoint + 1> Device::endpointInHandlers {
-        &handleEP0In,
-        &handleEP1In,
-        &handleEP2In,
-        &handleEP3In,
-        &handleEP4In
-    };
-
-    std::array<void(*)(), hal::USB::MaxEndpoint + 1> Device::endpointOutHandlers {
-        &handleEP0Out,
-        &handleEP1Out,
-        &handleEP2Out,
-        &handleEP3Out,
-        &handleEP4Out
-    };
-
-    void Device::initialize() noexcept
+    void Device::handleInterrupt(const hal::usb::Interrupt status) noexcept
     {
-        pendingAddress = 0;
-        addressPending = false;
-        pendingConfiguration = 0;
-        configurationPending = false;
-        configuration = 0;
-        ep0State = ControlState::Idle;
-        hidProtocol = hid::Protocol::Report;
-        hidIdleRate = 0;
-        inTransfers = {};
-        outTransfers = {};
-        controlOutType = ControlOutType::None;
-        endpointStates = {
-            EndpointState::Idle,
-            EndpointState::Idle,
-            EndpointState::Idle,
-            EndpointState::Idle,
-            EndpointState::Idle
-        };
+        if (hasInterrupt(status, hal::usb::Interrupt::BusReset))
+        {
+            reset();
+            hal::usb::Controller::reset();
+            return;
+        }
 
-        debug::DebugEndpoint::reset();
-        hal::USB::initialize();
-        hal::USB::connect();
+        const auto event = proto::ControlPipe::handleInterrupt(status);
+        if (event == proto::ControlEvent::Setup)
+        {
+            _cancelPendingState();
+            State.Setup = proto::ControlPipe::beginSetup();
+            _handleSetup();
+            return;
+        }
+
+        if (event != proto::ControlEvent::None)
+            _handleControlEvent(event);
+        proto::TransferPipe::handleInterrupt(status);
     }
 
     bool Device::isConfigured() noexcept
     {
-        return configuration != 0u && pendingConfiguration == 0u && configurationPending == false;
+        return State.Configuration != 0;
     }
 
-    bool Device::waitUntilConfigured(const std::uint64_t timeoutMilliseconds) noexcept
+    std::uint8_t Device::getAddress() noexcept
     {
-        const auto start =
-            hal::HighResolutionTimer::nowTicks();
+        return State.Address;
+    }
 
-        const auto timeout =
-            timeoutMilliseconds *
-            hal::HighResolutionTimer::TicksPerMillisecond;
+    std::uint8_t Device::getConfiguration() noexcept
+    {
+        return State.Configuration;
+    }
 
+    void Device::sendControlResponse(const std::span<const std::uint8_t> buff, const std::size_t requestedLength) noexcept
+    {
+        const std::size_t transferLength = std::min(buff.size(), requestedLength);
+        const std::size_t maxPacketSize = hal::usb::Controller::getControlEndpoint().getMaxSize();
+        const bool needsZlp = transferLength < requestedLength && transferLength % maxPacketSize == 0;
+        proto::ControlPipe::startTransferIn(std::as_bytes(buff.first(transferLength)), needsZlp);
+    }
+
+    bool Device::waitUntilConfigured(const std::uint64_t timeoutMs) noexcept
+    {
+        const auto start = hal::HighResolutionTimer::nowTicks();
+        const auto timeout = timeoutMs * hal::HighResolutionTimer::TicksPerMillisecond;
         while (!isConfigured())
         {
-            if ((hal::HighResolutionTimer::nowTicks() - start) >= timeout)
+            if (hal::HighResolutionTimer::nowTicks() - start >= timeout)
                 return false;
-
             __NOP();
         }
 
         return true;
     }
 
-    bool Device::handleSonixRebootCommand(const std::uint8_t* data, const std::size_t length) noexcept
+    void Device::_handleSetup() noexcept
     {
-        if (length != SonixRebootMagic.size())
-            return false;
-
-        for (std::size_t i = 0; i < SonixRebootMagic.size(); ++i) {
-            if (data[i] != SonixRebootMagic[i])
-                return false;
-        }
-
-        BootloaderRebootPending = true;
-        return true;
-    }
-
-    void Device::handleVendorCommand(const std::uint8_t* data, const std::size_t length) noexcept
-    {
-        if (handleSonixRebootCommand(data, length))
-            return;
-    }
-
-    hid::Protocol Device::getHIDProtocol() noexcept
-    {
-        return hidProtocol;
-    }
-
-    bool Device::sendBootKeyboard(const hid::BootKeyboardReport &report) noexcept
-    {
-        constexpr std::uint8_t endpoint = 1;
-        if (!isConfigured() ||
-            isEndpointBusy(endpoint)) {
-            return false;
-        }
-
-        sendEndpoint(
-            endpoint,
-            reinterpret_cast<const std::uint8_t*>(&report),
-            sizeof(report)
-        );
-
-        return true;
-    }
-
-    bool Device::sendReportKeyboard(const hid::NKROKeyboardReport& report) noexcept
-    {
-        constexpr std::uint8_t endpoint = 1;
-        if (!isConfigured() ||
-            isEndpointBusy(endpoint)) {
-            return false;
-        }
-
-        sendEndpoint(
-            endpoint,
-            reinterpret_cast<const std::uint8_t*>(&report),
-            sizeof(report)
-        );
-
-        return true;
-    }
-
-    bool Device::sendRPCData(const std::uint8_t *data, const std::size_t length) noexcept
-    {
-        constexpr std::uint8_t endpoint = 4;
-        if (!isConfigured() ||
-            isEndpointBusy(endpoint)) {
-            return false;
-        }
-
-        sendEndpoint(
-            endpoint,
-            data,
-            length
-        );
-
-        return true;
-    }
-
-    void Device::handleInterrupt() noexcept
-    {
-        const std::uint32_t status =
-            hal::USB::getInterruptStatus();
-
-        if (hasInterrupt(status, Interrupt::BusReset)) {
-            handleBusReset();
-        }
-
-        if (hasInterrupt(status, Interrupt::EP0Setup)) {
-            handleSetup();
-        }
-
-        if (hasInterrupt(status, Interrupt::EP0In)) {
-            hal::USB::clearInterruptStatus(
-                value(Interrupt::EP0In)
-            );
-
-            handleEndpointIn(0);
-        }
-
-        if (hasInterrupt(status, Interrupt::EP0Out)) {
-            handleEndpointOut(0);
-        }
-
-        for (std::uint8_t endpoint = 1; endpoint <= hal::USB::MaxEndpoint; ++endpoint)
+        switch (State.Setup.type())
         {
-            const std::uint32_t ack = 1u << (7u + endpoint);
-
-            if ((status & ack) == 0u)
-                continue;
-
-            hal::USB::clearInterruptStatus(ack);
-
-            switch (endpoint) {
-                case 1:
-                case 4:
-                    handleEndpointIn(endpoint);
-                    break;
-
-                case 3:
-                    handleEndpointOut(endpoint);
-                    break;
-
-                default:
-                    break;
-            }
-        }
-    }
-
-    bool Device::isEndpointBusy(std::uint8_t endpoint) noexcept
-    {
-        if (endpoint > hal::USB::MaxEndpoint) {
-            return false;
-        }
-
-        return endpointStates[endpoint] != EndpointState::Idle;
-    }
-
-    void Device::handleBusReset() noexcept
-    {
-        hal::USB::clearInterruptStatus(
-            value(Interrupt::BusReset)
-        );
-
-        pendingAddress = 0;
-        addressPending = false;
-        pendingConfiguration = 0;
-        configurationPending = false;
-        configuration = 0;
-        ep0State = ControlState::Idle;
-        hidProtocol = hid::Protocol::Report;
-        hidIdleRate = 0;
-        inTransfers = {};
-        outTransfers = {};
-        controlOutType = ControlOutType::None;
-        endpointStates = {
-            EndpointState::Idle,
-            EndpointState::Idle,
-            EndpointState::Idle,
-            EndpointState::Idle,
-            EndpointState::Idle
-        };
-        debug::DebugEndpoint::reset();
-        hal::USB::resetBus();
-    }
-
-    SetupPacket Device::readSetupPacket() noexcept
-    {
-        const std::uint32_t word0 =
-            hal::USB::readFifo32(0);
-
-        const std::uint32_t word1 =
-            hal::USB::readFifo32(4);
-
-        return SetupPacket {
-            .requestType = static_cast<std::uint8_t>(
-                word0
-            ),
-
-            .request = static_cast<std::uint8_t>(
-                word0 >> 8
-            ),
-
-            .value = static_cast<std::uint16_t>(
-                word0 >> 16
-            ),
-
-            .index = static_cast<std::uint16_t>(
-                word1
-            ),
-
-            .length = static_cast<std::uint16_t>(
-                word1 >> 16
-            ),
-        };
-    }
-
-    void Device::handleSetup() noexcept
-    {
-        hal::USB::clearInterruptStatus(
-            value(Interrupt::EP0PreSetup) |
-            value(Interrupt::EP0Setup) |
-            value(Interrupt::EP0InStall) |
-            value(Interrupt::EP0OutStall)
-        );
-
-        inTransfers[0] = {};
-        outTransfers[0] = {};
-
-        ep0State = ControlState::Idle;
-        endpointStates[0] = EndpointState::Idle;
-
-        const SetupPacket setup = readSetupPacket();
-
-        if (hasInterrupt(
-                hal::USB::getInterruptStatus(),
-                Interrupt::SetupError)) {
-            hal::USB::clearInterruptStatus(
-                value(Interrupt::SetupError)
-            );
-
-            stallEndpoint(0);
+        case payloads::RequestType::Standard:
+            _handleStandardRequest();
+            return;
+        case payloads::RequestType::Class:
+            _handleClassRequest();
+            return;
+        case payloads::RequestType::Vendor:
+            _handleVendorRequest();
+            return;
+        default:
+            _stallControl();
             return;
         }
-
-        switch (setup.type()) {
-            case RequestType::Standard: // Standard
-                handleStandardRequest(setup);
-                return;
-
-            case RequestType::Class: // Class
-                handleClassRequest(setup);
-                return;
-
-            default:
-                stallEndpoint(0);
-                return;
-        }
     }
 
-    void Device::handleStandardRequest(const SetupPacket& setup) noexcept
+    void Device::_handleControlEvent(proto::ControlEvent event) noexcept
     {
-        switch (setup.request) {
-            case RequestGetDescriptor:
-                handleGetDescriptor(setup);
-                return;
-
-            case RequestSetAddress:
-                if (setup.isDeviceToHost() ||
-                    setup.value > 127u ||
-                    setup.index != 0u ||
-                    setup.length != 0u) {
-                    stallEndpoint(0);
-                    return;
-                }
-
-                pendingAddress =
-                    static_cast<std::uint8_t>(setup.value);
-
-                addressPending = true;
-
-                sendEndpointZeroLengthPacket(0);
-                return;
-
-            case RequestSetConfiguration:
-                if (setup.isDeviceToHost() ||
-                    setup.index != 0u ||
-                    setup.length != 0u ||
-                    setup.value > 1u) {
-                    stallEndpoint(0);
-                    return;
-                }
-
-                pendingConfiguration =
-                    static_cast<std::uint8_t>(setup.value);
-
-                configurationPending = true;
-
-                sendEndpointZeroLengthPacket(0);
-                return;
-
-            case RequestGetConfiguration:
-                sendControlResponse(
-                    setup,
-                    &configuration,
-                    sizeof(configuration)
-                );
-                return;
-
-            default:
-                stallEndpoint(0);
-                return;
-        }
-    }
-
-    void Device::handleClassRequest(const SetupPacket& setup) noexcept
-    {
-        // HID requests are directed at interface 0.
-        if ((setup.index & 0xFFu) != HIDInterface) {
-            stallEndpoint(0);
-            return;
-        }
-
-        switch (setup.request) {
-            case HIDSetIdle:
-                if (setup.isDeviceToHost() || setup.length != 0u) {
-                    stallEndpoint(0);
-                    return;
-                }
-
-                // High byte = idle duration in 4 ms units.
-                hidIdleRate =
-                    static_cast<std::uint8_t>(setup.value >> 8);
-
-                sendEndpointZeroLengthPacket(0);
-                return;
-
-            case HIDGetIdle:
-                if (!setup.isDeviceToHost()) {
-                    stallEndpoint(0);
-                    return;
-                }
-
-                sendControlResponse(
-                    setup,
-                    &hidIdleRate,
-                    sizeof(hidIdleRate)
-                );
-                return;
-
-            case HIDSetProtocol: {
-                if (setup.isDeviceToHost() ||
-                    setup.length != 0u ||
-                    setup.value > HIDReportProtocol) {
-                    stallEndpoint(0);
-                    return;
-                }
-
-                hidProtocol = static_cast<hid::Protocol>(setup.value);
-                sendEndpointZeroLengthPacket(0);
-                return;
-            }
-
-            case HIDGetProtocol:
-                if (!setup.isDeviceToHost()) {
-                    stallEndpoint(0);
-                    return;
-                }
-
-                sendControlResponse(
-                    setup,
-                    reinterpret_cast<std::uint8_t*>(&hidProtocol),
-                    sizeof(hidProtocol)
-                );
-                return;
-
-            case HIDSetReport: {
-                if (setup.isDeviceToHost()) {
-                    stallEndpoint(0);
-                    return;
-                }
-
-                const auto reportType =
-                    static_cast<std::uint8_t>(setup.value >> 8);
-
-                const auto reportId =
-                    static_cast<std::uint8_t>(setup.value);
-
-                if (reportId != 0) {
-                    stallEndpoint(0);
-                    return;
-                }
-
-                if (reportType == HIDReportTypeOutput) {
-                    if (setup.length != 1) {
-                        stallEndpoint(0);
-                        return;
-                    }
-
-                    controlOutType = ControlOutType::HIDOutputReport;
-
-                    if (!beginControlOutTransfer(
-                            &kb::KeyboardState::CurrentLEDState.Raw,
-                            1))
-                    {
-                        controlOutType = ControlOutType::None;
-                        stallEndpoint(0);
-                    }
-
-                    return;
-                }
-
-                if (reportType == HIDReportTypeFeature) {
-                    if (setup.length > featureReportBuffer.size()) {
-                        stallEndpoint(0);
-                        return;
-                    }
-
-                    controlOutType = ControlOutType::HIDFeatureReport;
-
-                    if (!beginControlOutTransfer(
-                            featureReportBuffer.data(),
-                            setup.length))
-                    {
-                        controlOutType = ControlOutType::None;
-                        stallEndpoint(0);
-                    }
-
-                    return;
-                }
-
-                stallEndpoint(0);
-                return;
-            }
-
-            default:
-                stallEndpoint(0);
-                return;
-        }
-    }
-
-    bool Device::beginControlOutTransfer(
-        std::uint8_t* data,
-        const std::size_t length
-    ) noexcept
-    {
-        constexpr std::uint8_t Endpoint = 0;
-
-        if (length != 0u && data == nullptr)
-            return false;
-
-        auto& transfer = outTransfers[Endpoint];
-
-        transfer.Data = data;
-        transfer.Capacity = length;
-        transfer.Offset = 0;
-        transfer.ExpectedLength = length;
-        transfer.Active = true;
-
-        ep0State = ControlState::DataOut;
-        endpointStates[Endpoint] = EndpointState::Busy;
-
-        // EP0 has no direction configuration bit;
-        // ACK state applies to the next OUT token from the host.
-        hal::USB::armOutEndpoint(Endpoint);
-
-        return true;
-    }
-
-    void Device::handleGetDescriptor(const SetupPacket& setup) noexcept
-    {
-        const std::uint8_t descriptorType =
-            static_cast<std::uint8_t>(setup.value >> 8);
-
-        const std::uint8_t descriptorIndex =
-            static_cast<std::uint8_t>(setup.value);
-
-        switch (descriptorType) {
-            case DescriptorDevice:
-                sendControlResponse(
-                    setup,
-                    descriptors::Device.data(),
-                    descriptors::Device.size()
-                );
-                return;
-
-            case DescriptorConfiguration:
-                sendControlResponse(
-                    setup,
-                    descriptors::Configuration.data(),
-                    descriptors::Configuration.size()
-                );
-                return;
-
-            case DescriptorString:
-                switch (descriptorIndex) {
-                    case 0:
-                        sendControlResponse(
-                            setup,
-                            descriptors::Language.data(),
-                            descriptors::Language.size()
-                        );
-                        return;
-
-                    case 1:
-                        sendControlResponse(
-                            setup,
-                            descriptors::Manufacturer.data(),
-                            descriptors::Manufacturer.size()
-                        );
-                        return;
-
-                    case 2:
-                        sendControlResponse(
-                            setup,
-                            descriptors::Product.data(),
-                            descriptors::Product.size()
-                        );
-                        return;
-
-                    case 3:
-                        sendControlResponse(
-                            setup,
-                            descriptors::SerialNumber.data(),
-                            descriptors::SerialNumber.size()
-                        );
-                        return;
-
-                    default:
-                        stallEndpoint(0);
-                        return;
-                }
-
-            case DescriptorHID:
-                sendControlResponse(
-                    setup,
-                    descriptors::HIDKeyboard::Descriptor.data(),
-                    descriptors::HIDKeyboard::Descriptor.size()
-                );
-                return;
-
-            case DescriptorReport:
-                sendControlResponse(
-                    setup,
-                    descriptors::HIDKeyboard::ReportDescriptor.data(),
-                    descriptors::HIDKeyboard::ReportDescriptor.size()
-                );
-                return;
-
-            default:
-                stallEndpoint(0);
-                return;
-        }
-    }
-
-    bool Device::sendEndpoint(
-        const std::uint8_t endpoint,
-        const std::uint8_t* data,
-        const std::size_t length,
-        const bool terminateWithZlp
-    ) noexcept
-    {
-        if (endpoint > hal::USB::MaxEndpoint)
-            return false;
-
-        if (isEndpointBusy(endpoint))
-            return false;
-
-        if (length != 0 && data == nullptr)
-            return false;
-
-        if (getEndpointMaxPacketSize(endpoint) == 0)
-            return false;
-
-        auto& transfer = inTransfers[endpoint];
-
-        transfer.Data = data;
-        transfer.Length = length;
-        transfer.Offset = 0;
-        transfer.InFlight = 0;
-        transfer.Active = true;
-        transfer.ZlpPending = terminateWithZlp;
-
-        endpointStates[endpoint] = EndpointState::Busy;
-
-        armNextInPacket(endpoint);
-
-        return true;
-    }
-
-    void Device::sendEndpointZeroLengthPacket(const std::uint8_t endpoint) noexcept
-    {
-        if (endpoint == 0u) {
-            ep0State = ControlState::StatusIn;
-            endpointStates[0] = EndpointState::Busy;
-
-            // No InTransfer is needed for the control status stage.
-            hal::USB::armInEndpoint(0, 0);
-            return;
-        }
-
-        sendEndpoint(
-            endpoint,
-            nullptr,
-            0,
-            true
-        );
-    }
-
-    void Device::handleEP0In() noexcept
-    {
-        switch (ep0State) {
-            case ControlState::DataIn:
-                /*
-                * Descriptor/data packet was acknowledged.
-                *
-                * Now ACK the host's zero-length OUT status packet.
-                * Despite the current HAL method name, EP0CTL's ACK state
-                * applies according to the token direction sent by the host.
-                */
-                ep0State = ControlState::StatusOut;
-                endpointStates[0] = EndpointState::Busy;
-                hal::USB::armInEndpoint(0, 0);
-                return;
-
-            case ControlState::StatusIn:
-                /*
-                * Status stage for SET_ADDRESS, SET_CONFIGURATION, etc.
-                */
-                if (addressPending) {
-                    hal::USB::setAddress(pendingAddress);
-
-                    addressPending = false;
-                    pendingAddress = 0;
-                }
-
-                if (configurationPending) {
-                    applyConfiguration(pendingConfiguration);
-                    configuration = pendingConfiguration;
-                    configurationPending = false;
-                    pendingConfiguration = 0;
-                }
-
-                ep0State = ControlState::Idle;
-                endpointStates[0] = EndpointState::Idle;
-                hal::USB::enableEndpoint(0);
-
-                if (BootloaderRebootPending) {
-                    BootloaderRebootPending = false;
-                    //debug::Panic::setNextRebootIsBootloader(true);
-                    hal::System::toBootloader();
-                    __builtin_unreachable();
-                }
-                return;
-
-            default:
-                ep0State = ControlState::Idle;
-                endpointStates[0] = EndpointState::Idle;
-                hal::USB::enableEndpoint(0);
-                return;
-        }
-    }
-    
-    void Device::handleEP1In() noexcept
-    {
-    }
-
-    void Device::handleEP2In() noexcept
-    {
-    }
-
-    void Device::handleEP3In() noexcept
-    {
-    }
-
-    void Device::handleEP4In() noexcept
-    {
-        //debug::DebugEndpoint::handleTransmitComplete();
-        
-    }
-
-    void Device::handleEP0Out() noexcept
-    {
-        hal::USB::clearInterruptStatus(
-            value(Interrupt::EP0Out)
-        );
-
-        switch (ep0State) {
-            case ControlState::StatusOut:
-                ep0State = ControlState::Idle;
-                endpointStates[0] = EndpointState::Idle;
-
-                hal::USB::enableEndpoint(0);
-                return;
-
-            case ControlState::DataOut: {
-                auto& transfer = outTransfers[0];
-
-                if (!transfer.Active) {
-                    stallEndpoint(0);
-                    return;
-                }
-
-                const std::size_t packetLength =
-                    hal::USB::getEndpointByteCount(0);
-
-                const std::size_t remaining =
-                    transfer.Capacity - transfer.Offset;
-
-                if (packetLength > remaining) {
-                    transfer.Active = false;
-                    stallEndpoint(0);
-                    return;
-                }
-
-                hal::USB::readEndpointFifo(
-                    0,
-                    transfer.Data + transfer.Offset,
-                    packetLength
-                );
-
-                transfer.Offset += packetLength;
-
-                const bool shortPacket =
-                    packetLength <
-                    getEndpointMaxPacketSize(0);
-
-                const bool complete =
-                    transfer.Offset >=
-                    transfer.ExpectedLength;
-
-                if (!complete && !shortPacket) {
-                    hal::USB::armOutEndpoint(0);
-                    return;
-                }
-
-                // Host ended the DATA OUT stage.
-                transfer.Active = false;
-
-                const bool validLength =
-                    transfer.Offset ==
-                    transfer.ExpectedLength;
-
-                if (!validLength) {
-                    stallEndpoint(0);
-                    return;
-                }
-
-                switch (controlOutType) {
-                    case ControlOutType::HIDOutputReport:
-                        handleHIDOutputReport();
-                        break;
-
-                    case ControlOutType::HIDFeatureReport:
-                        handleVendorCommand(
-                            featureReportBuffer.data(),
-                            transfer.Offset
-                        );
-                        break;
-
-                    case ControlOutType::None:
-                        break;
-                }
-
-                // Complete SET_REPORT successfully first.
-                sendEndpointZeroLengthPacket(0);
-                return;
-            }
-
-            default:
-                hal::USB::enableEndpoint(0);
-                return;
-        }
-    }
-
-    void Device::handleHIDOutputReport() noexcept
-    {
-        HIDOutputReportCount++;
-        hal::GPIO::setPinValue(hal::GPIOPort::B, hal::GPIOPin::PIN14, kb::KeyboardState::CurrentLEDState.capsLock());
-        hal::GPIO::setPinValue(hal::GPIOPort::B, hal::GPIOPin::PIN15, kb::KeyboardState::CurrentLEDState.scrollLock());
-    }
-
-    void Device::handleEP1Out() noexcept
-    {
-    }
-
-    void Device::handleEP2Out() noexcept
-    {
-    }
-
-    void Device::handleEP3Out() noexcept
-    {
-        constexpr std::uint8_t endpoint = 3;
-
-        const std::size_t length = hal::USB::getEndpointByteCount(endpoint);
-
-        if (length == 0 || RPCReceiveLength + length > RPCReceiveBuffer.size()) {
-            RPCReceiveLength = 0;
-            RPCExpectedLength = 0;
-            hal::USB::armOutEndpoint(endpoint);
-            return;
-        }
-
-        hal::USB::readEndpointFifo(endpoint, RPCReceiveBuffer.data() + RPCReceiveLength, length);
-        RPCReceiveLength += length;
-
-        if (RPCExpectedLength == 0 && RPCReceiveLength >= sizeof(rpc::PacketHeader)) {
-            rpc::PacketHeader header{};
-            std::memcpy(&header, RPCReceiveBuffer.data(), sizeof(header));
-
-            if (header.Magic != rpc::RPC::Magic /* adapt visibility here */) {
-                RPCReceiveLength = 0;
-                RPCExpectedLength = 0;
-                hal::USB::armOutEndpoint(endpoint);
-                return;
-            }
-
-            RPCExpectedLength = sizeof(rpc::PacketHeader) + header.PayloadLength;
-
-            if (RPCExpectedLength > RPCReceiveBuffer.size()) {
-                RPCReceiveLength = 0;
-                RPCExpectedLength = 0;
-                hal::USB::armOutEndpoint(endpoint);
-                return;
-            }
-        }
-
-        if (RPCExpectedLength != 0 && RPCReceiveLength == RPCExpectedLength) {
-            rpc::RPC::handlePacket(RPCReceiveBuffer.data(), RPCReceiveLength);
-
-            RPCReceiveLength = 0;
-            RPCExpectedLength = 0;
-        }
-        else if (RPCExpectedLength != 0 && RPCReceiveLength > RPCExpectedLength) {
-            RPCReceiveLength = 0;
-            RPCExpectedLength = 0;
-        }
-
-        hal::USB::armOutEndpoint(endpoint);
-    }
-
-    void Device::handleEP4Out() noexcept
-    {
-    }
-
-    void Device::armNextInPacket(const std::uint8_t endpoint) noexcept
-    {
-        auto& transfer = inTransfers[endpoint];
-
-        if (!transfer.Active)
-            return;
-
-        const std::size_t maxPacketSize =
-            getEndpointMaxPacketSize(endpoint);
-
-        if (transfer.Offset < transfer.Length) {
-            const std::size_t remaining =
-                transfer.Length - transfer.Offset;
-
-            const std::size_t packetLength =
-                std::min(remaining, maxPacketSize);
-
-            hal::USB::writeEndpointFifo(
-                endpoint,
-                transfer.Data + transfer.Offset,
-                packetLength
-            );
-
-            transfer.InFlight = packetLength;
-
-            hal::USB::armInEndpoint(
-                endpoint,
-                packetLength
-            );
-
-            return;
-        }
-
-        if (transfer.ZlpPending) {
-            transfer.ZlpPending = false;
-            transfer.InFlight = 0;
-
-            hal::USB::armInEndpoint(
-                endpoint,
-                0
-            );
-
-            return;
-        }
-
-        // Should only really be reachable for malformed state.
-        transfer.Active = false;
-        transfer.InFlight = 0;
-        endpointStates[endpoint] = EndpointState::Idle;
-    }
-
-    void Device::handleOutPacket(const std::uint8_t endpoint) noexcept
-    {
-        auto& transfer = outTransfers[endpoint];
-        const std::size_t packetLength =
-            hal::USB::getEndpointByteCount(endpoint);
-
-        const std::size_t remaining =
-            transfer.Capacity - transfer.Offset;
-
-        const std::size_t copyLength =
-            std::min(packetLength, remaining);
-
-        hal::USB::readEndpointFifo(
-            endpoint,
-            transfer.Data + transfer.Offset,
-            copyLength
-        );
-
-        transfer.Offset += copyLength;
-
-        const bool shortPacket =
-            packetLength <
-            getEndpointMaxPacketSize(endpoint);
-
-        const bool expectedComplete =
-            transfer.ExpectedLength != 0 &&
-            transfer.Offset >= transfer.ExpectedLength;
-
-        const bool full =
-            transfer.Offset >= transfer.Capacity;
-
-        if (shortPacket || expectedComplete || full) {
-            transfer.Active = false;
-            endpointStates[endpoint] = EndpointState::Idle;
-            endpointOutHandlers[endpoint]();
-            return;
-        }
-
-        // Tell the controller we're ready for another OUT packet.
-        hal::USB::armOutEndpoint(endpoint);
-    }
-
-    void Device::applyConfiguration(const std::uint8_t value) noexcept
-    {
-        if (value == 0u) {
-            debug::DebugEndpoint::setConfigured(false);
-
-            hal::USB::disableEndpoint(1);
-            hal::USB::disableEndpoint(3);
-            hal::USB::disableEndpoint(4);
-
-            endpointStates[1] = EndpointState::Idle;
-            endpointStates[3] = EndpointState::Idle;
-            endpointStates[4] = EndpointState::Idle;
-
-            return;
-        }
-
-        hal::USB::setEndpointDirection(1, false);
-        hal::USB::enableEndpoint(1);
-
-        hal::USB::setEndpointDirection(
-            descriptors::RPC::RequestEndpointNumber,
-            true
-        );
-
-        hal::USB::enableEndpoint(
-            descriptors::RPC::RequestEndpointNumber
-        );
-
-        hal::USB::armOutEndpoint(
-            descriptors::RPC::RequestEndpointNumber
-        );
-
-        hal::USB::setEndpointDirection(
-            descriptors::RPC::ResponseEndpointNumber,
-            false
-        );
-
-        hal::USB::enableEndpoint(
-            descriptors::RPC::ResponseEndpointNumber
-        );
-    }
-
-    void Device::sendControlResponse(
-        const SetupPacket& setup,
-        const std::uint8_t* data,
-        const std::size_t availableLength
-    ) noexcept
-    {
-        constexpr std::size_t MaxPacketSize = 64;
-
-        const std::size_t requestedLength =
-            static_cast<std::size_t>(setup.length);
-
-        const std::size_t transferLength =
-            std::min(
-                availableLength,
-                requestedLength
-            );
-
-        /*
-        * For a control IN transfer:
-        *
-        * If we have less data than the host requested, but the amount
-        * happens to end exactly on a max-packet boundary, a ZLP is
-        * needed to tell the host "that was all of it".
-        */
-        const bool needsZlp =
-            transferLength < requestedLength &&
-            (transferLength % MaxPacketSize) == 0;
-
-        ep0State = ControlState::DataIn;
-
-        if (!sendEndpoint(
-                0,
-                data,
-                transferLength,
-                needsZlp))
+        switch (event)
         {
-            stallEndpoint(0);
+        case proto::ControlEvent::DataOutComplete:
+            return;
+        case proto::ControlEvent::TransferComplete:
+            _commitPendingState();
+            return;
+        default:
+            return;
         }
     }
 
-    void Device::handleEndpointIn(const std::uint8_t endpoint) noexcept
+    void Device::_handleStandardRequest() noexcept
     {
-        auto& transfer = inTransfers[endpoint];
-
-        if (!transfer.Active) {
-            endpointStates[endpoint] = EndpointState::Idle;
-            endpointInHandlers[endpoint]();
-            return;
-        }
-
-        // The packet currently in flight was ACKed by the host.
-        transfer.Offset += transfer.InFlight;
-        transfer.InFlight = 0;
-
-        if (transfer.Offset < transfer.Length ||
-            transfer.ZlpPending)
+        const auto& setup = State.Setup;
+        switch (State.Setup.request)
         {
-            armNextInPacket(endpoint);
+        case payloads::StandardRequest::GET_DESCRIPTOR:
+            _handleGetDescriptor();
+            return;
+        case payloads::StandardRequest::SET_ADDRESS:
+            if (setup.isDeviceToHost() || setup.value > 127 || setup.index != 0 || setup.length != 0)
+            {
+                _stallControl();
+                return;
+            }
+            State.PendingAddress = setup.value;
+            State.HasPendingAddress = true;
+            proto::ControlPipe::startStatusIn();
+            return;
+        case payloads::StandardRequest::GET_CONFIGURATION:
+            if (!setup.isDeviceToHost() || setup.value != 0 || setup.index != 0 || setup.length != 1)
+            {
+                _stallControl();
+                return;
+            }
+            proto::ControlPipe::startTransferIn(std::as_bytes(std::span{ &State.Configuration, 1 }));
+            return;
+        case payloads::StandardRequest::SET_CONFIGURATION:
+            if (setup.isDeviceToHost() || setup.value > 1 || setup.index != 0 || setup.length != 0)
+            {
+                _stallControl();
+                return;
+            }
+            State.PendingConfiguration = setup.value;
+            State.HasPendingConfiguration = true;
+            proto::ControlPipe::startStatusIn();
+            return;
+        default:
+            _stallControl();
             return;
         }
-
-        // Entire logical transfer is complete.
-        transfer.Active = false;
-        transfer.Data = nullptr;
-        transfer.Length = 0;
-        transfer.Offset = 0;
-
-        endpointStates[endpoint] = EndpointState::Idle;
-
-        endpointInHandlers[endpoint]();
     }
 
-    void Device::handleEndpointOut(const std::uint8_t endpoint) noexcept
+    void Device::_handleGetDescriptor() noexcept
     {
-        if (endpoint == 0u) {
-            handleEP0Out();
+        const auto type = static_cast<std::uint8_t>(State.Setup.value >> 8);
+        const auto index = static_cast<std::uint8_t>(State.Setup.value);
+        const std::uint16_t length = State.Setup.length;
+        switch (type)
+        {
+        case Descriptor::DEVICE:
+            sendControlResponse(std::span{ Descriptor::Device.data(), Descriptor::Device.size() }, length);
+            return;
+        case Descriptor::CONFIGURATION:
+            sendControlResponse(std::span{ Descriptor::Configuration.data(), Descriptor::Configuration.size() }, length);
+            return;
+        case Descriptor::STRING:
+            if (index >= Descriptor::Strings.size())
+            {
+                _stallControl();
+                return;
+            }
+
+            sendControlResponse(Descriptor::Strings[index], length);
+            return;
+        case Descriptor::HID:
+            sendControlResponse(std::span{ HIDKeyboard::Descriptor.data(), HIDKeyboard::Descriptor.size() }, length);
+            return;
+        case Descriptor::REPORT:
+            sendControlResponse(std::span{ HIDKeyboard::ReportDescriptor.data(), HIDKeyboard::ReportDescriptor.size() }, length);
+            return;
+        default:
+            _stallControl();
             return;
         }
-
-        if (outTransfers[endpoint].Active) {
-            handleOutPacket(endpoint);
-            return;
-        }
-
-        endpointStates[endpoint] = EndpointState::Idle;
-        endpointOutHandlers[endpoint]();
     }
 
-    void Device::stallEndpoint(const std::uint8_t endpoint) noexcept
+    void Device::_handleClassRequest() noexcept
     {
-        hal::USB::stallEndpoint(endpoint);
+        _stallControl();
+    }
+
+    void Device::_handleVendorRequest() noexcept
+    {
+        _stallControl();
+    }
+
+    void Device::_commitPendingState() noexcept
+    {
+        if (State.HasPendingAddress)
+        {
+            State.HasPendingAddress = false;
+            State.Address = State.PendingAddress;
+            hal::usb::Controller::setAddress(State.Address);
+        }
+
+        if (State.HasPendingConfiguration)
+        {
+            _setConfiguration(State.PendingConfiguration);
+            State.HasPendingConfiguration = false;
+            State.Configuration = State.PendingConfiguration;
+        }
+    }
+
+    void Device::_cancelPendingState() noexcept
+    {
+        State.HasPendingAddress = false;
+        State.HasPendingConfiguration = false;
+    }
+
+    void Device::_setConfiguration(std::uint8_t configuration) noexcept
+    {
+        if (configuration == 0)
+            hal::usb::Controller::deconfigure();
+        else
+            hal::usb::Controller::configure();
+    }
+
+    void Device::_stallControl() noexcept
+    {
+        hal::usb::Controller::getControlEndpoint().stall();
     }
 }
