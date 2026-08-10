@@ -30,43 +30,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="baa3ec05-c5ab-490b-ace4-169f8857b6ac" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.clang-tidy" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/usb/protocol/payloads/StandardRequest.hpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/usb/protocol/pipes/ControlPipe.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/usb/protocol/pipes/ControlPipe.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vscode/settings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/SN32F200_Def.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/SN32F240B.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/cmsis_compiler.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/cmsis_gcc.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/cmsis_version.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/core_cm0.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/system_SN32F240B.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/DebugEndpoint.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/DebugEndpoint.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/Panic.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/Panic.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/System.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/System.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/System.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/System.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/gpio/GPIO.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/gpio/GPIO.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/timer/HighResolutionTimer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/timer/HighResolutionTimer.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/timer/Timer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/timer/Timer.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/usb/Controller.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/usb/Controller.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/usb/Controller.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/usb/Controller.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/usb/Endpoint.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/usb/Endpoint.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/usb/Endpoint.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/usb/Endpoint.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/usb/Interrupt.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/usb/Interrupt.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kb/rgb/RGBMatrix.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/rgb/RGBMatrix.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/rt/Concurrency.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/rt/Concurrency.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/usb/Descriptors.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/Descriptors.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/usb/Device.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/Device.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/usb/Device.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/Device.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/usb/Interrupt.hpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/usb/packets/SetupPacket.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/protocol/payloads/SetupPayload.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

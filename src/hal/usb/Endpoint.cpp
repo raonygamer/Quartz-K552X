@@ -216,12 +216,12 @@ namespace quartz::hal::usb
         return static_cast<std::uint8_t>(_getEndpointControl(Number) & 0x7Fu);
     }
 
-    inline bool Endpoint::isEndpointValid(const EndpointNumber number) noexcept
+    bool Endpoint::isEndpointValid(const EndpointNumber number) noexcept
     {
         return value(number) < MAX_ENDPOINTS;
     }
 
-    inline volatile std::uint32_t& Endpoint::_getEndpointControl(const EndpointNumber number) noexcept
+    volatile std::uint32_t& Endpoint::_getEndpointControl(const EndpointNumber number) noexcept
     {
         HARD_ASSERTC(isEndpointValid(number), PanicReason::ENDPT_INVALID);
         return (&SN_USB->EP0CTL)[value(number)];
