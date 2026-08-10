@@ -71,7 +71,8 @@ extern "C" void SysTick_Handler()
 
 extern "C" void USB_IRQHandler()
 {
-    quartz::usb::Device::handleInterrupt(quartz::hal::usb::Controller::getInterruptStatus());
+    const auto status = quartz::hal::usb::Controller::getInterruptStatus();
+    quartz::usb::Device::handleInterrupt(status);
 }
 
 extern "C" void HardFault_Handler()

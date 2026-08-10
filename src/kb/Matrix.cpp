@@ -191,22 +191,25 @@ namespace quartz::kb {
         );
     }
 
+    static void waitForSignal()
+    {
+        constexpr std::uint32_t SettleTicks = utils::Time::microsecondsToTicks(63);
+        const std::uint32_t settleStart = hal::HighResolutionTimer::rawTicks();
+        while ((hal::HighResolutionTimer::rawTicks() - settleStart & 0x00FFFFFFu) < SettleTicks)
+            __NOP();
+    }
+
     void Matrix::scan() noexcept
     {
-        constexpr std::uint32_t SettleTicks = utils::Time::microsecondsToTicks(60);
-
         // Row 0 is ignored for some reason, so we start scanning from row 1.
         constexpr std::uint8_t StartingRow = 1;
 
         const auto start = hal::HighResolutionTimer::rawTicks();
-        Matrix::begin();
+        begin();
         utils::BitSet<MatrixDefinitions::Size> newKeyStates;
         for (std::uint8_t row = StartingRow; row < MatrixDefinitions::Rows; ++row) {
             setRowPinValue(row, false);
-            const std::uint32_t settleStart = hal::HighResolutionTimer::rawTicks();
-            while (((hal::HighResolutionTimer::rawTicks() - settleStart) & 0x00FFFFFFu) < SettleTicks)
-                __NOP();
-
+            waitForSignal();
             newKeyStates.setUnsafeU16(
                 readColPins(),
                 static_cast<std::size_t>(row) * 2U
@@ -214,14 +217,12 @@ namespace quartz::kb {
             setRowPinValue(row, true);
         }
 
-        Matrix::end();
-        kb::rgb::RGBMatrix::acquire();
-
-        profiling::ScanTicks = static_cast<std::uint32_t>(hal::HighResolutionTimer::rawTicks() - start);
-
+        end();
+        rgb::RGBMatrix::acquire();
+        profiling::ScanTicks = hal::HighResolutionTimer::rawTicks() - start;
         const auto updateStart = hal::HighResolutionTimer::rawTicks();
-        kb::KeyboardState::updateKeyStates(newKeyStates);
-        profiling::StateUpdateTicks = static_cast<std::uint32_t>(hal::HighResolutionTimer::rawTicks() - updateStart);
+        KeyboardState::updateKeyStates(newKeyStates);
+        profiling::StateUpdateTicks = hal::HighResolutionTimer::rawTicks() - updateStart;
     }
 
     void Matrix::end() noexcept
@@ -229,9 +230,6 @@ namespace quartz::kb {
         const auto start = hal::HighResolutionTimer::rawTicks();
         setColPinsMode(hal::GPIOMode::Input, hal::GPIOPull::None);
         setRowPinsMode(hal::GPIOMode::Input);
-        profiling::EndScanTicks = static_cast<std::uint32_t>(
-            hal::HighResolutionTimer::rawTicks() -
-            start
-        );
+        profiling::EndScanTicks = hal::HighResolutionTimer::rawTicks() - start;
     }
 }

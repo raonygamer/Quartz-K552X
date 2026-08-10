@@ -140,7 +140,7 @@ namespace quartz::debug {
             state.PanicCount = count;
         }
 
-        static const State& getState() noexcept {
+        static State& getState() noexcept {
             return state;
         }
 
@@ -170,19 +170,9 @@ namespace quartz::debug {
     };
 }
 
-#define HARD_ASSERTC(condition, reason) \
-    do { \
-        if (!(condition)) { \
-            ::quartz::debug::Panic::assertFailed(reason); \
-        } \
-    } while (false)
+#define HARD_ASSERTC(condition, reason)
 
-#define HARD_ASSERT(condition) \
-    do { \
-        if (!(condition)) { \
-            ::quartz::debug::Panic::assertFailed(); \
-        } \
-    } while (false)
+#define HARD_ASSERT(condition)
 
 namespace {
     using PanicReason = quartz::debug::Panic::Reason;

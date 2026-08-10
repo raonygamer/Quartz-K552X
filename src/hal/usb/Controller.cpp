@@ -63,8 +63,9 @@ namespace quartz::hal::usb
 
     void Controller::reset() noexcept
     {
-        SN_USB->INSTSC = -1;
+        SN_USB->INSTSC = 0xFFFFFFFFu;
         SN_USB->ADDR = 0;
+        SN_USB->EPTOGGLE = 0;
         getEndpoint(EndpointNumber::EP0).enable();
         for (std::uint8_t i = 1; i < Endpoint::MAX_ENDPOINTS; ++i)
         {

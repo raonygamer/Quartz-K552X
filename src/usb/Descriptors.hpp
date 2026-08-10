@@ -108,7 +108,7 @@ namespace quartz::usb
         static constexpr std::uint8_t ResponseEndpointNumber  = 4;
         static constexpr std::uint8_t ResponseEndpointAddress = 0x84;
 
-        static constexpr std::uint16_t MaxPacketSize = 32;
+        static constexpr std::uint16_t MaxPacketSize = 0x40;
     };
 
     struct Descriptor
@@ -130,7 +130,7 @@ namespace quartz::usb
             0x00,
             0x00,
 
-            64,
+            0x08,
 
             0x47, 0xB1, // VID: 0xB147
             0x31, 0x41, // PID: 0x4131

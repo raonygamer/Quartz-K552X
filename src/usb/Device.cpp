@@ -2,10 +2,13 @@
 
 #include "hal/timer/HighResolutionTimer.hpp"
 #include "hal/usb/Controller.hpp"
+#include "kb/KeyboardState.hpp"
 #include "usb/Descriptors.hpp"
 #include "usb/protocol/pipes/TransferPipe.hpp"
 #include "usb/protocol/payloads/StandardRequest.hpp"
-#include "usb/Descriptors.hpp"
+#include "usb/hid/KeyboardReporter.hpp"
+#include "quartz/rpc/RPC.hpp"
+#include "kb/rgb/RGBMatrix.hpp"
 
 namespace quartz::usb
 {
@@ -30,15 +33,48 @@ namespace quartz::usb
         const auto event = proto::ControlPipe::handleInterrupt(status);
         if (event == proto::ControlEvent::Setup)
         {
+            hal::usb::Controller::clearInterruptStatus(
+                hal::usb::Interrupt::EP0PreSetup |
+                hal::usb::Interrupt::EP0Setup |
+                hal::usb::Interrupt::EP0In |
+                hal::usb::Interrupt::EP0Out |
+                hal::usb::Interrupt::EP0InStall |
+                hal::usb::Interrupt::EP0OutStall
+            );
+
             _cancelPendingState();
             State.Setup = proto::ControlPipe::beginSetup();
+            const auto current = hal::usb::Controller::getInterruptStatus();
+            if (hal::usb::hasInterrupt(current, hal::usb::Interrupt::EP0PreSetup) || hal::usb::hasInterrupt(current, hal::usb::Interrupt::EP0Setup))
+            {
+                proto::ControlPipe::reset();
+                return;
+            }
             _handleSetup();
             return;
         }
 
         if (event != proto::ControlEvent::None)
             _handleControlEvent(event);
-        proto::TransferPipe::handleInterrupt(status);
+
+        const auto pipeEvents = proto::TransferPipe::handleInterrupt(status);
+        if (pipeEvents.outComplete(hal::usb::EndpointNumber::EP3))
+            rpc::RPC::handleReceiveComplete();
+        if (pipeEvents.inComplete(hal::usb::EndpointNumber::EP4))
+            rpc::RPC::handleTransmitComplete();
+
+        if (hasInterrupt(status, hal::usb::Interrupt::EP0In))
+            hal::usb::Controller::clearInterruptStatus(hal::usb::Interrupt::EP0In);
+        if (hasInterrupt(status, hal::usb::Interrupt::EP0Out))
+            hal::usb::Controller::clearInterruptStatus(hal::usb::Interrupt::EP0Out);
+        if (hasInterrupt(status, hal::usb::Interrupt::EP1Ack))
+            hal::usb::Controller::clearInterruptStatus(hal::usb::Interrupt::EP1Ack);
+        if (hasInterrupt(status, hal::usb::Interrupt::EP2Ack))
+            hal::usb::Controller::clearInterruptStatus(hal::usb::Interrupt::EP2Ack);
+        if (hasInterrupt(status, hal::usb::Interrupt::EP3Ack))
+            hal::usb::Controller::clearInterruptStatus(hal::usb::Interrupt::EP3Ack);
+        if (hasInterrupt(status, hal::usb::Interrupt::EP4Ack))
+            hal::usb::Controller::clearInterruptStatus(hal::usb::Interrupt::EP4Ack);
     }
 
     bool Device::isConfigured() noexcept
@@ -78,6 +114,11 @@ namespace quartz::usb
         return true;
     }
 
+    hid::HIDProtocol Device::getProtocol() noexcept
+    {
+        return State.Protocol;
+    }
+
     void Device::_handleSetup() noexcept
     {
         switch (State.Setup.type())
@@ -97,15 +138,29 @@ namespace quartz::usb
         }
     }
 
-    void Device::_handleControlEvent(proto::ControlEvent event) noexcept
+    void Device::_handleControlEvent(const proto::ControlEvent event) noexcept
     {
         switch (event)
         {
         case proto::ControlEvent::DataOutComplete:
-            return;
+            switch (State.ControlOut)
+            {
+            case hid::ControlOutType::HIDSetReport:
+                kb::KeyboardState::CurrentLEDState.Raw = State.HIDOutputReport;
+                kb::KeyboardState::CurrentLEDState.updateLeds();
+                State.ControlOut = hid::ControlOutType::None;
+                proto::ControlPipe::startStatusIn();
+                return;
+
+            default:
+                _stallControl();
+                return;
+            }
+
         case proto::ControlEvent::TransferComplete:
             _commitPendingState();
             return;
+
         default:
             return;
         }
@@ -187,9 +242,112 @@ namespace quartz::usb
         }
     }
 
+    void Device::_handleGetHIDReport() noexcept
+    {
+        const auto& setup = State.Setup;
+        const auto reportType = static_cast<hid::HIDReportType>(setup.value >> 8);
+        const auto reportId = static_cast<std::uint8_t>(setup.value);
+        if (!setup.isDeviceToHost() || reportId != 0)
+        {
+            _stallControl();
+            return;
+        }
+
+        switch (reportType)
+        {
+        case hid::HIDReportType::Output:
+            sendControlResponse(std::span { &kb::KeyboardState::CurrentLEDState.Raw, 1 }, setup.length);
+            return;
+        case hid::HIDReportType::Input:
+            _sendCurrentKeyboardReportControl();
+            return;
+        default:
+            _stallControl();
+            return;
+        }
+    }
+
+    void Device::_handleSetHIDReport() noexcept
+    {
+        const auto& setup = State.Setup;
+        const auto reportType = static_cast<hid::HIDReportType>(setup.value >> 8);
+        const auto reportId = static_cast<std::uint8_t>(setup.value);
+        if (setup.isDeviceToHost() || reportType != hid::HIDReportType::Output || reportId != 0 || setup.length != 1)
+        {
+            _stallControl();
+            return;
+        }
+
+        State.ControlOut = hid::ControlOutType::HIDSetReport;
+        proto::ControlPipe::startTransferOut(std::as_writable_bytes(std::span { &State.HIDOutputReport, 1 }));
+    }
+
     void Device::_handleClassRequest() noexcept
     {
-        _stallControl();
+        constexpr std::uint16_t HIDInterface = 0;
+        const auto& setup = State.Setup;
+        if (setup.index != HIDInterface)
+        {
+            _stallControl();
+            return;
+        }
+
+        switch (setup.request)
+        {
+        case hid::HIDRequest::SET_IDLE:
+        {
+            const auto reportId = static_cast<std::uint8_t>(setup.value);
+            if (setup.isDeviceToHost() || reportId != 0 || setup.length != 0)
+            {
+                _stallControl();
+                return;
+            }
+
+            State.IdleRate = static_cast<std::uint8_t>(setup.value >> 8);
+            proto::ControlPipe::startStatusIn();
+            return;
+        }
+        case hid::HIDRequest::GET_IDLE:
+        {
+            const auto reportId = static_cast<std::uint8_t>(setup.value);
+            if (!setup.isDeviceToHost() || (setup.value >> 8) != 0 || reportId != 0 || setup.length != 1)
+            {
+                _stallControl();
+                return;
+            }
+
+            proto::ControlPipe::startTransferIn(std::as_bytes(std::span { &State.IdleRate, 1 }));
+            return;
+        }
+        case hid::HIDRequest::SET_PROTOCOL:
+            if (setup.isDeviceToHost() || setup.value > 1 || setup.length != 0)
+            {
+                _stallControl();
+                return;
+            }
+
+            State.Protocol = static_cast<hid::HIDProtocol>(setup.value);
+            proto::ControlPipe::startStatusIn();
+            return;
+        case hid::HIDRequest::GET_PROTOCOL:
+            if (!setup.isDeviceToHost() || setup.value != 0 || setup.length != 1)
+            {
+                _stallControl();
+                return;
+            }
+
+            proto::ControlPipe::startTransferIn(std::as_bytes(std::span { &State.Protocol, 1 }));
+            return;
+        case hid::HIDRequest::SET_REPORT:
+            _handleSetHIDReport();
+            return;
+        case hid::HIDRequest::GET_REPORT:
+            _handleGetHIDReport();
+            return;
+        default:
+            _stallControl();
+            return;
+        }
     }
 
     void Device::_handleVendorRequest() noexcept
@@ -218,14 +376,34 @@ namespace quartz::usb
     {
         State.HasPendingAddress = false;
         State.HasPendingConfiguration = false;
+        State.ControlOut = hid::ControlOutType::None;
     }
 
     void Device::_setConfiguration(std::uint8_t configuration) noexcept
     {
         if (configuration == 0)
+        {
             hal::usb::Controller::deconfigure();
-        else
-            hal::usb::Controller::configure();
+            return;
+        }
+        hal::usb::Controller::configure();
+        rpc::RPC::initialize();
+    }
+
+    bool Device::sendKeyboard(const std::span<const std::byte> report) noexcept
+    {
+        if (!isConfigured() || proto::TransferPipe::isTransferring(hal::usb::EndpointNumber::EP1))
+            return false;
+        proto::TransferPipe::startTransferIn(hal::usb::EndpointNumber::EP1, report);
+        return true;
+    }
+
+    void Device::_sendCurrentKeyboardReportControl() noexcept
+    {
+        const auto report = hid::rawCurrentKeyboardReport();
+        if (report.data() == nullptr || report.size() == 0)
+            return;
+        sendControlResponse(std::span(reinterpret_cast<const uint8_t*>(report.data()), report.size()), State.Setup.length);
     }
 
     void Device::_stallControl() noexcept

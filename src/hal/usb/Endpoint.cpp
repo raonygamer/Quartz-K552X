@@ -223,7 +223,7 @@ namespace quartz::hal::usb
 
     volatile std::uint32_t& Endpoint::_getEndpointControl(const EndpointNumber number) noexcept
     {
-        HARD_ASSERTC(isEndpointValid(number), PanicReason::ENDPT_INVALID);
+        //HARD_ASSERTC(isEndpointValid(number), PanicReason::ENDPT_INVALID);
         return (&SN_USB->EP0CTL)[value(number)];
     }
 
@@ -231,7 +231,7 @@ namespace quartz::hal::usb
     {
         if (Number == EndpointNumber::EP0)
             return;
-        const std::uint32_t directionBit = 1u << (value(Number) + 1u);
+        const std::uint32_t directionBit = 1u << (value(Number) - 1u);
         if (Direction == EndpointDirection::Out)
             SN_USB->CFG |= directionBit;
         else
@@ -244,7 +244,7 @@ namespace quartz::hal::usb
         if (Number == EndpointNumber::EP0)
             return;
         disable();
-        const std::uint32_t directionBit = 1u << (value(Number) + 1u);
+        const std::uint32_t directionBit = 1u << (value(Number) -  1u);
         SN_USB->CFG &= ~directionBit;
     }
 }

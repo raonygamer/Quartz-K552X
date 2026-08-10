@@ -1,9 +1,12 @@
 #pragma once
 #include <cstdint>
+#include <span>
+
 #include "utils/BitSet.hpp"
 #include "Matrix.hpp"
 #include "MatrixDefinitions.hpp"
 #include "usb/hid/BootKeyboardReport.hpp"
+#include "usb/hid/HIDProtocol.hpp"
 #include "usb/hid/NKROKeyboardReport.hpp"
 
 namespace quartz::kb {
@@ -26,6 +29,12 @@ namespace quartz::kb {
         bool scrollLock() const noexcept
         {
             return (Raw & (1u << 2)) != 0;
+        }
+
+        void updateLeds() const noexcept
+        {
+            hal::GPIO::setPinValue(hal::GPIOPort::B, hal::GPIOPin::PIN14, capsLock());
+            hal::GPIO::setPinValue(hal::GPIOPort::B, hal::GPIOPin::PIN15, scrollLock());
         }
     };
 

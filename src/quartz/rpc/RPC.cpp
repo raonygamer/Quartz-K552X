@@ -6,14 +6,27 @@
 #include "kb/KeyboardState.hpp"
 #include "kb/rgb/RGBMatrix.hpp"
 #include "quartz/Profiling.hpp"
+#include "usb/protocol/pipes/TransferPipe.hpp"
 #include "utils/Color32.hpp"
 
 namespace quartz::rpc
 {
     namespace
     {
-        constexpr std::size_t MaxPacketSize = 128;
-        std::uint8_t TxBuffer[MaxPacketSize]{};
+        constexpr std::size_t TxBufferSize = 512;
+        constexpr std::size_t RxBufferSize = 512;
+
+        std::uint8_t TxBuffer[TxBufferSize]{};
+        std::uint8_t RxBuffer[RxBufferSize]{};
+
+        void armReceive() noexcept
+        {
+            usb::proto::TransferPipe::startTransferOut(
+                hal::usb::EndpointNumber::EP3,
+                std::as_writable_bytes(std::span { RxBuffer }),
+                0
+            );
+        }
     }
 
     void RPC::handlePacket(const std::uint8_t* data, const std::size_t size) noexcept
@@ -100,7 +113,7 @@ namespace quartz::rpc
         const std::size_t payloadSize
     ) noexcept
     {
-        if (!usb::Device::isConfigured())
+        if (!usb::Device::isConfigured() || usb::proto::TransferPipe::isTransferring(hal::usb::EndpointNumber::EP4))
             return;
 
         if (payloadSize != 0 && payload == nullptr)
@@ -111,7 +124,7 @@ namespace quartz::rpc
         if (totalSize > sizeof(TxBuffer))
             return;
 
-        PacketHeader header{
+        const PacketHeader header{
             .Magic = Magic,
             .Version = 1,
             .Type = type,
@@ -123,8 +136,22 @@ namespace quartz::rpc
 
         if (payloadSize != 0)
             std::memcpy(TxBuffer + sizeof(header), payload, payloadSize);
-
-        //usb::Device::sendRPCData(TxBuffer, totalSize);
+        usb::proto::TransferPipe::startTransferIn(hal::usb::EndpointNumber::EP4, std::span { reinterpret_cast<const std::byte*>(TxBuffer), totalSize });
     }
-    
+
+    void RPC::initialize() noexcept
+    {
+        armReceive();
+    }
+
+    void RPC::handleReceiveComplete() noexcept
+    {
+        const std::size_t size = usb::proto::TransferPipe::getTransferredOutSize(hal::usb::EndpointNumber::EP3);
+        handlePacket(RxBuffer, size);
+        armReceive();
+    }
+
+    void RPC::handleTransmitComplete() noexcept
+    {
+    }
 }

@@ -18,7 +18,9 @@ namespace quartz::usb::proto
     {
         HARD_ASSERTC(hal::usb::Endpoint::isEndpointValid(num), PanicReason::ENDPT_INVALID_NUM);
         HARD_ASSERT(num != hal::usb::EndpointNumber::EP0);
-        return State.In[value(num)].Active || State.Out[value(num)].Active;
+        if (hal::usb::Controller::getEndpoint(num).isIn())
+            return State.In[value(num)].Active;
+        return State.Out[value(num)].Active;
     }
 
     void TransferPipe::startTransferOut(const hal::usb::EndpointNumber num, const std::span<std::byte> buff, const std::size_t expected) noexcept
@@ -26,7 +28,7 @@ namespace quartz::usb::proto
         HARD_ASSERTC(hal::usb::Endpoint::isEndpointValid(num), PanicReason::ENDPT_INVALID_NUM);
         HARD_ASSERT(num != hal::usb::EndpointNumber::EP0);
         HARD_ASSERTC(buff.data() != nullptr, PanicReason::TRANS_COUT_NUL_BUF);
-        HARD_ASSERTC(expected != 0, PanicReason::TRANS_COUT_BUF_ZLEN);
+        HARD_ASSERTC(buff.size() != 0, PanicReason::TRANS_COUT_BUF_ZLEN);
         HARD_ASSERT(expected <= buff.size());
         const auto& endpoint = hal::usb::Controller::getEndpoint(num);
         auto& [
@@ -70,23 +72,35 @@ namespace quartz::usb::proto
         _transmitNextImmediate(num);
     }
 
-    void TransferPipe::handleInterrupt(const hal::usb::Interrupt status) noexcept
+    TransferEvents TransferPipe::handleInterrupt(const hal::usb::Interrupt status) noexcept
     {
-        const auto handleEndpoint = [status](const hal::usb::EndpointNumber num, const hal::usb::Interrupt interrupt)
+        TransferEvents events = {};
+        const auto handleEndpoint = [status, &events](const hal::usb::EndpointNumber num, const hal::usb::Interrupt interrupt)
         {
             if (!hasInterrupt(status, interrupt))
                 return;
 
             if (hal::usb::Controller::getEndpoint(num).isIn())
-                _handleEndpointIn(num);
+            {
+                if (_handleEndpointIn(num))
+                {
+                    events.InComplete |= 1u << value(num);
+                }
+            }
             else
-                _handleEndpointOut(num);
+            {
+                if (_handleEndpointOut(num))
+                {
+                    events.OutComplete |= 1u << value(num);
+                }
+            }
         };
 
         handleEndpoint(hal::usb::EndpointNumber::EP1, hal::usb::Interrupt::EP1Ack);
         handleEndpoint(hal::usb::EndpointNumber::EP2, hal::usb::Interrupt::EP2Ack);
         handleEndpoint(hal::usb::EndpointNumber::EP3, hal::usb::Interrupt::EP3Ack);
         handleEndpoint(hal::usb::EndpointNumber::EP4, hal::usb::Interrupt::EP4Ack);
+        return events;
     }
 
     void TransferPipe::_transmitNextImmediate(const hal::usb::EndpointNumber num) noexcept
@@ -122,7 +136,7 @@ namespace quartz::usb::proto
         transfer.reset();
     }
 
-    void TransferPipe::_handleEndpointOut(const hal::usb::EndpointNumber num) noexcept
+    bool TransferPipe::_handleEndpointOut(const hal::usb::EndpointNumber num) noexcept
     {
         HARD_ASSERTC(hal::usb::Endpoint::isEndpointValid(num), PanicReason::ENDPT_INVALID_NUM);
         HARD_ASSERT(num != hal::usb::EndpointNumber::EP0);
@@ -130,34 +144,35 @@ namespace quartz::usb::proto
         auto& transfer = State.Out[value(num)];
         if (!transfer.Active)
         {
-            return;
+            return false;
         }
 
         const std::size_t packetLength = endpoint.getReceivedSize();
         const std::size_t remaining = transfer.Data.size() - transfer.Offset;
-        const std::size_t copyLength = std::min(packetLength, remaining);
+        HARD_ASSERT(packetLength <= remaining);
         const bool isShortPacket = packetLength < endpoint.getMaxSize();
-        endpoint.readTo(transfer.Data.subspan(transfer.Offset, static_cast<std::uint8_t>(packetLength)));
-        transfer.Offset += copyLength;
-        const bool expectedComplete = transfer.Offset >= transfer.ExpectedLength;
+        endpoint.readTo(transfer.Data.subspan(transfer.Offset, packetLength));
+        transfer.Offset += packetLength;
+        const bool expectedComplete = transfer.ExpectedLength != 0 && transfer.Offset >= transfer.ExpectedLength;
         const bool full = transfer.Offset >= transfer.Data.size();
         if (isShortPacket || expectedComplete || full)
         {
             transfer.Active = false;
-            return;
+            return true;
         }
 
         endpoint.armOut();
+        return false;
     }
 
-    void TransferPipe::_handleEndpointIn(const hal::usb::EndpointNumber num) noexcept
+    bool TransferPipe::_handleEndpointIn(const hal::usb::EndpointNumber num) noexcept
     {
         HARD_ASSERTC(hal::usb::Endpoint::isEndpointValid(num), PanicReason::ENDPT_INVALID_NUM);
         HARD_ASSERT(num != hal::usb::EndpointNumber::EP0);
         auto& transfer = State.In[value(num)];
         if (!transfer.Active)
         {
-            return;
+            return false;
         }
 
         transfer.Offset += transfer.InFlight;
@@ -165,9 +180,17 @@ namespace quartz::usb::proto
         if (transfer.Offset < transfer.Data.size() || transfer.ShouldSendZeroLength)
         {
             _transmitNextImmediate(num);
-            return;
+            return false;
         }
 
         transfer.reset();
+        return true;
+    }
+
+    std::size_t TransferPipe::getTransferredOutSize(const hal::usb::EndpointNumber num) noexcept
+    {
+        HARD_ASSERTC(hal::usb::Endpoint::isEndpointValid(num), PanicReason::ENDPT_INVALID_NUM);
+        HARD_ASSERT(num != hal::usb::EndpointNumber::EP0);
+        return State.Out[value(num)].Offset;
     }
 }

@@ -7,46 +7,49 @@ namespace quartz::usb::hid {
     inline BootKeyboardReport PendingBootKeyboard {};
     inline NKROKeyboardReport PendingReportKeyboard {};
     inline bool ReportDirty = false;
-    inline auto LastProtocol = Protocol::Boot;
+    inline auto LastProtocol = HIDProtocol::Boot;
 
     inline void markDirty() noexcept
     {
         ReportDirty = true;
     }
 
+    inline std::span<const std::byte> rawCurrentKeyboardReport()
+    {
+        switch (Device::getProtocol())
+        {
+        case HIDProtocol::Boot:
+            return std::span(reinterpret_cast<const std::byte*>(&PendingBootKeyboard), sizeof(PendingBootKeyboard));
+        case HIDProtocol::Report:
+            return std::span(reinterpret_cast<const std::byte*>(&PendingReportKeyboard), sizeof(PendingReportKeyboard));
+        }
+        return std::span(reinterpret_cast<const std::byte*>(&PendingBootKeyboard), sizeof(PendingBootKeyboard));
+    }
+
     inline void service() noexcept
     {
-        // if (!Device::isConfigured())
-        //     return;
-        //
-        // const auto protocol = Device::getHIDProtocol();
-        //
-        // if (protocol != LastProtocol) {
-        //     LastProtocol = protocol;
-        //     ReportDirty = true;
-        // }
-        //
-        // if (!ReportDirty)
-        //     return;
-        //
-        // if (Device::isEndpointBusy(descriptors::HIDKeyboard::EndpointNumber))
-        //     return;
-        //
-        // bool sent = false;
-        //
-        // switch (protocol) {
-        //     case Protocol::Boot:
-        //         PendingBootKeyboard = kb::KeyboardState::buildBootReport();
-        //         sent = Device::sendBootKeyboard(PendingBootKeyboard);
-        //         break;
-        //
-        //     case Protocol::Report:
-        //         PendingReportKeyboard = kb::KeyboardState::buildNKROReport();
-        //         sent = Device::sendReportKeyboard(PendingReportKeyboard);
-        //         break;
-        // }
-        //
-        // if (sent)
-        //     ReportDirty = false;
+        if (!Device::isConfigured())
+            return;
+
+        const auto protocol = Device::getProtocol();
+
+        if (protocol != LastProtocol) {
+            LastProtocol = protocol;
+            ReportDirty = true;
+        }
+
+        if (!ReportDirty)
+            return;
+        switch (protocol) {
+        case HIDProtocol::Boot:
+            PendingBootKeyboard = kb::KeyboardState::buildBootReport();
+            break;
+        case HIDProtocol::Report:
+            PendingReportKeyboard = kb::KeyboardState::buildNKROReport();
+            break;
+        }
+
+        if (Device::sendKeyboard(rawCurrentKeyboardReport()))
+            ReportDirty = false;
     }
 }
