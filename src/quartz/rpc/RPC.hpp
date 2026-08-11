@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include "packets/PacketHeader.hpp"
+#include "quartz/rpc/PacketHeader.hpp"
 
 namespace quartz::rpc {
     class RPC {

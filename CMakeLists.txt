@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
+add_subdirectory(protocol)
+
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
@@ -91,6 +93,7 @@ target_link_options(${FIRMWARE_TARGET} PRIVATE
 # pulling in libc or libstdc++.
 target_link_libraries(${FIRMWARE_TARGET} PRIVATE
         gcc
+        QuartzProtocol
 )
 
 set_property(TARGET ${FIRMWARE_TARGET} APPEND PROPERTY

@@ -1,13 +1,12 @@
 #include "RPC.hpp"
 #include <cstring>
-#include "packets/PacketHeader.hpp"
-#include "packets/PerfStatisticsPacket.hpp"
 #include "usb/Device.hpp"
 #include "kb/KeyboardState.hpp"
 #include "kb/rgb/RGBMatrix.hpp"
 #include "quartz/Profiling.hpp"
 #include "usb/protocol/pipes/TransferPipe.hpp"
 #include "utils/Color32.hpp"
+#include "utils/Time.hpp"
 
 namespace quartz::rpc
 {
@@ -56,11 +55,11 @@ namespace quartz::rpc
                 handlePingPacket(header);
                 break;
 
-            case PacketType::GetPerfStatistics:
+            case PacketType::PerformanceRequest:
                 handleGetPerfStatisticsPacket(header);
                 break;
 
-            case PacketType::SetRGBMatrix:
+            case PacketType::LEDFramebufferSet:
                 handleSetRGBMatrixPacket(header, payload);
                 break;
 
