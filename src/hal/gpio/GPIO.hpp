@@ -1,16 +1,19 @@
 #pragma once
-#include <cstdint>
 #include "cppmcu.h"
+#include <cstdint>
 
-namespace quartz::hal {
-    enum class GPIOPort : std::uint8_t {
+namespace quartz::hal
+{
+    enum class GPIOPort : std::uint8_t
+    {
         A = 0,
         B = 1,
         C = 2,
         D = 3
     };
 
-    enum class GPIOPin : std::uint8_t {
+    enum class GPIOPin : std::uint8_t
+    {
         PIN0 = 0,
         PIN1 = 1,
         PIN2 = 2,
@@ -29,17 +32,20 @@ namespace quartz::hal {
         PIN15 = 15
     };
 
-    enum class GPIOMode : std::uint8_t {
+    enum class GPIOMode : std::uint8_t
+    {
         Input = 0,
         Output = 1
     };
 
-    enum class GPIOPull : std::uint8_t {
+    enum class GPIOPull : std::uint8_t
+    {
         None,
         PullUp
     };
 
-    class GPIO {
+    class GPIO
+    {
     public:
         static void setPinMode(GPIOPort port, GPIOPin pin, GPIOMode mode) noexcept;
         static void setPortMode(GPIOPort port, std::uint32_t mask, GPIOMode mode) noexcept;

@@ -1,12 +1,15 @@
 #pragma once
-#include "hal/usb/Interrupt.hpp"
 #include "hal/usb/Endpoint.hpp"
+#include "hal/usb/Interrupt.hpp"
 #include <array>
 
-namespace quartz::hal::usb {
-    class Controller {
+namespace quartz::hal::usb
+{
+    class Controller
+    {
         using EndpointArray = std::array<Endpoint, Endpoint::MAX_ENDPOINTS>;
         static EndpointArray Endpoints;
+
     public:
         static void initialize() noexcept;
         static void connect() noexcept;

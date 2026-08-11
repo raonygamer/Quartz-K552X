@@ -1,9 +1,11 @@
 #pragma once
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
-namespace quartz::debug {
-    class DebugEndpoint {
+namespace quartz::debug
+{
+    class DebugEndpoint
+    {
     public:
         static void reset() noexcept;
         static void setConfigured(bool configured) noexcept;

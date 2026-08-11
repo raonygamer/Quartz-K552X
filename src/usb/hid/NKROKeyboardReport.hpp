@@ -1,16 +1,18 @@
 #pragma once
-#include <cstdint>
 #include "KeyboardUsage.hpp"
 #include <array>
+#include <cstdint>
 
-namespace quartz::usb::hid {
-    struct __attribute__((packed)) NKROKeyboardReport {
+namespace quartz::usb::hid
+{
+    struct __attribute__((packed)) NKROKeyboardReport
+    {
         static constexpr auto MaximumUsage = static_cast<std::uint8_t>(KeyboardUsage::International1);
         static constexpr std::size_t KeyBytes = (static_cast<std::size_t>(MaximumUsage) + 8u) / 8u;
 
-        std::uint8_t Modifiers {};
-        std::uint8_t Reserved {};
-        std::array<std::uint8_t, KeyBytes> Keys {};
+        std::uint8_t Modifiers{};
+        std::uint8_t Reserved{};
+        std::array<std::uint8_t, KeyBytes> Keys{};
 
         constexpr void clear() noexcept
         {

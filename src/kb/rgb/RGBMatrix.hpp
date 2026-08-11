@@ -1,7 +1,7 @@
 #pragma once
+#include "quartz/utils/Color32.hpp"
 #include <cstddef>
 #include <cstdint>
-#include "utils/Color32.hpp"
 
 namespace quartz::kb::rgb
 {

@@ -2,15 +2,17 @@
 #include <cstdint>
 #include <span>
 
-#include "utils/BitSet.hpp"
 #include "Matrix.hpp"
 #include "MatrixDefinitions.hpp"
 #include "usb/hid/BootKeyboardReport.hpp"
 #include "usb/hid/HIDProtocol.hpp"
 #include "usb/hid/NKROKeyboardReport.hpp"
+#include "utils/BitSet.hpp"
 
-namespace quartz::kb {
-    struct LEDState {
+namespace quartz::kb
+{
+    struct LEDState
+    {
         std::uint8_t Raw = 0x0;
 
         [[nodiscard]]
@@ -38,7 +40,8 @@ namespace quartz::kb {
         }
     };
 
-    class KeyboardState {
+    class KeyboardState
+    {
     public:
         static LEDState CurrentLEDState;
         static utils::BitSet<MatrixDefinitions::Size> CurrentKeyStates;

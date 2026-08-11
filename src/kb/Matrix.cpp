@@ -1,18 +1,20 @@
 #include "kb/Matrix.hpp"
-#include "kb/KeyboardState.hpp"
-#include "kb/Keyboard.hpp"
 #include "hal/timer/HighResolutionTimer.hpp"
-#include "utils/Time.hpp"
-#include "rgb/RGBMatrix.hpp"
+#include "kb/Keyboard.hpp"
+#include "kb/KeyboardState.hpp"
 #include "quartz/Profiling.hpp"
+#include "rgb/RGBMatrix.hpp"
+#include "utils/Time.hpp"
 
-extern "C" {
-    #include "SN32F240B.h"
+extern "C"
+{
+#include "SN32F240B.h"
 }
 
-namespace quartz::kb {
-    namespace {
-
+namespace quartz::kb
+{
+    namespace
+    {
         // GPIO mapping:
         // hal A = GPIO0
         // hal B = GPIO1
@@ -38,8 +40,10 @@ namespace quartz::kb {
         {
             std::uint32_t result = 0;
 
-            for (std::uint32_t pin = 0; pin < 16; ++pin) {
-                if ((pinMask & (1u << pin)) != 0) {
+            for (std::uint32_t pin = 0; pin < 16; ++pin)
+            {
+                if ((pinMask & (1u << pin)) != 0)
+                {
                     result |= 0x3u << (pin * 2u);
                 }
             }
@@ -51,8 +55,10 @@ namespace quartz::kb {
         {
             std::uint32_t result = 0;
 
-            for (std::uint32_t pin = 0; pin < 16; ++pin) {
-                if ((pinMask & (1u << pin)) != 0) {
+            for (std::uint32_t pin = 0; pin < 16; ++pin)
+            {
+                if ((pinMask & (1u << pin)) != 0)
+                {
                     result |= (value & 0x3u) << (pin * 2u);
                 }
             }
@@ -64,7 +70,6 @@ namespace quartz::kb {
         constexpr std::uint32_t ColCFGMaskB = expandCFGMask(ColMaskB);
         constexpr std::uint32_t ColCFGInactiveC = makeCFGValue(ColMaskC, 0b10u);
         constexpr std::uint32_t ColCFGInactiveB = makeCFGValue(ColMaskB, 0b10u);
-
     }
 
     void Matrix::initialize() noexcept
@@ -73,10 +78,13 @@ namespace quartz::kb {
 
     void Matrix::setRowPinsMode(const hal::GPIOMode mode) noexcept
     {
-        if (mode == hal::GPIOMode::Output) {
+        if (mode == hal::GPIOMode::Output)
+        {
             SN_GPIO2->MODE |= RowMaskC;
             SN_GPIO3->MODE |= RowMaskD;
-        } else {
+        }
+        else
+        {
             SN_GPIO2->MODE &= ~RowMaskC;
             SN_GPIO3->MODE &= ~RowMaskD;
         }
@@ -84,17 +92,22 @@ namespace quartz::kb {
 
     void Matrix::setRowPinValue(const std::uint8_t row, const bool high) noexcept
     {
-        if (row >= MatrixDefinitions::Rows) {
+        if (row >= MatrixDefinitions::Rows)
+        {
             return;
         }
 
         const GPIOPinSet& pinSet = RowPins[row];
         const std::uint32_t mask = pinSet.getMask();
 
-        if (pinSet.Port == hal::GPIOPort::C) {
-            if (high) {
+        if (pinSet.Port == hal::GPIOPort::C)
+        {
+            if (high)
+            {
                 SN_GPIO2->BSET = mask;
-            } else {
+            }
+            else
+            {
                 SN_GPIO2->BCLR = mask;
             }
 
@@ -102,19 +115,25 @@ namespace quartz::kb {
         }
 
         // Rows only live on C and D.
-        if (high) {
+        if (high)
+        {
             SN_GPIO3->BSET = mask;
-        } else {
+        }
+        else
+        {
             SN_GPIO3->BCLR = mask;
         }
     }
 
     void Matrix::setAllRowPinsValue(const bool high) noexcept
     {
-        if (high) {
+        if (high)
+        {
             SN_GPIO2->BSET = RowMaskC;
             SN_GPIO3->BSET = RowMaskD;
-        } else {
+        }
+        else
+        {
             SN_GPIO2->BCLR = RowMaskC;
             SN_GPIO3->BCLR = RowMaskD;
         }
@@ -122,10 +141,13 @@ namespace quartz::kb {
 
     void Matrix::setColPinsMode(const hal::GPIOMode mode, const hal::GPIOPull pull) noexcept
     {
-        if (mode == hal::GPIOMode::Output) {
+        if (mode == hal::GPIOMode::Output)
+        {
             SN_GPIO2->MODE |= ColMaskC;
             SN_GPIO1->MODE |= ColMaskB;
-        } else {
+        }
+        else
+        {
             SN_GPIO2->MODE &= ~ColMaskC;
             SN_GPIO1->MODE &= ~ColMaskB;
         }
@@ -136,10 +158,13 @@ namespace quartz::kb {
         // PullUp = 00
         // None   = 10 (inactive, Schmitt enabled)
         //
-        if (pull == hal::GPIOPull::PullUp) {
+        if (pull == hal::GPIOPull::PullUp)
+        {
             SN_GPIO2->CFG &= ~ColCFGMaskC;
             SN_GPIO1->CFG &= ~ColCFGMaskB;
-        } else {
+        }
+        else
+        {
             SN_GPIO2->CFG =
                 (SN_GPIO2->CFG & ~ColCFGMaskC) |
                 ColCFGInactiveC;
@@ -207,7 +232,8 @@ namespace quartz::kb {
         const auto start = hal::HighResolutionTimer::rawTicks();
         begin();
         utils::BitSet<MatrixDefinitions::Size> newKeyStates;
-        for (std::uint8_t row = StartingRow; row < MatrixDefinitions::Rows; ++row) {
+        for (std::uint8_t row = StartingRow; row < MatrixDefinitions::Rows; ++row)
+        {
             setRowPinValue(row, false);
             waitForSignal();
             newKeyStates.setUnsafeU16(

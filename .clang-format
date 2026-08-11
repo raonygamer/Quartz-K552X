@@ -38,10 +38,10 @@ BreakBeforeBinaryOperators: None
 BreakConstructorInitializers: AfterColon
 PackConstructorInitializers: Never
 ConstructorInitializerIndentWidth: 4
-Cpp11BracedListStyle: Block
+Cpp11BracedListStyle: false
 
 AlignConsecutiveDeclarations: None
-
+AlignAfterOpenBracket: BlockIndent
 DerivePointerAlignment: false
 PointerAlignment: Left
 ReferenceAlignment: Left

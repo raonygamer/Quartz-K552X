@@ -27,24 +27,26 @@ namespace quartz::hal::usb
 
     enum class EndpointDirection : std::uint8_t
     {
-        Out  = 0,
-        In   = 1,
+        Out = 0,
+        In = 1,
         Both = 2
     };
 
     enum class EndpointState : std::uint8_t
     {
-        Nak   = 0x0,
-        Ack   = 0x1,
+        Nak = 0x0,
+        Ack = 0x1,
         Stall = 0x2
     };
 
     class Controller;
+
     class Endpoint
     {
         friend class Controller;
         static volatile RWRegister& R_REG;
         static volatile RWRegister& W_REG;
+
     public:
         static constexpr std::uint8_t MAX_ENDPOINTS = 5;
         const EndpointNumber Number;

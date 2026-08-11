@@ -1,10 +1,12 @@
 #pragma once
 #include <cstdint>
 
-namespace quartz::usb::hid {
-    enum class KeyboardUsage : std::uint8_t {
-        None           = 0x00,
-        ErrorRollOver  = 0x01,
+namespace quartz::usb::hid
+{
+    enum class KeyboardUsage : std::uint8_t
+    {
+        None = 0x00,
+        ErrorRollOver = 0x01,
 
         A = 0x04,
         B = 0x05,
@@ -44,55 +46,55 @@ namespace quartz::usb::hid {
         Digit9 = 0x26,
         Digit0 = 0x27,
 
-        Enter     = 0x28,
-        Escape    = 0x29,
+        Enter = 0x28,
+        Escape = 0x29,
         Backspace = 0x2A,
-        Tab       = 0x2B,
-        Space     = 0x2C,
+        Tab = 0x2B,
+        Space = 0x2C,
 
-        Minus        = 0x2D,
-        Equal        = 0x2E,
-        LeftBracket  = 0x2F,
+        Minus = 0x2D,
+        Equal = 0x2E,
+        LeftBracket = 0x2F,
         RightBracket = 0x30,
-        Backslash    = 0x31,
-        NonUSHash    = 0x32,
-        Semicolon    = 0x33,
-        Apostrophe   = 0x34,
-        GraveAccent  = 0x35,
-        Comma        = 0x36,
-        Period       = 0x37,
-        Slash        = 0x38,
+        Backslash = 0x31,
+        NonUSHash = 0x32,
+        Semicolon = 0x33,
+        Apostrophe = 0x34,
+        GraveAccent = 0x35,
+        Comma = 0x36,
+        Period = 0x37,
+        Slash = 0x38,
 
         CapsLock = 0x39,
 
-        F1  = 0x3A,
-        F2  = 0x3B,
-        F3  = 0x3C,
-        F4  = 0x3D,
-        F5  = 0x3E,
-        F6  = 0x3F,
-        F7  = 0x40,
-        F8  = 0x41,
-        F9  = 0x42,
+        F1 = 0x3A,
+        F2 = 0x3B,
+        F3 = 0x3C,
+        F4 = 0x3D,
+        F5 = 0x3E,
+        F6 = 0x3F,
+        F7 = 0x40,
+        F8 = 0x41,
+        F9 = 0x42,
         F10 = 0x43,
         F11 = 0x44,
         F12 = 0x45,
 
         PrintScreen = 0x46,
-        ScrollLock  = 0x47,
-        Pause       = 0x48,
+        ScrollLock = 0x47,
+        Pause = 0x48,
 
-        Insert      = 0x49,
-        Home        = 0x4A,
-        PageUp      = 0x4B,
-        Delete      = 0x4C,
-        End         = 0x4D,
-        PageDown    = 0x4E,
+        Insert = 0x49,
+        Home = 0x4A,
+        PageUp = 0x4B,
+        Delete = 0x4C,
+        End = 0x4D,
+        PageDown = 0x4E,
 
         RightArrow = 0x4F,
-        LeftArrow  = 0x50,
-        DownArrow  = 0x51,
-        UpArrow    = 0x52,
+        LeftArrow = 0x50,
+        DownArrow = 0x51,
+        UpArrow = 0x52,
 
         // ISO/ABNT2 key near Left Shift.
         NonUSBackslash = 0x64,
@@ -102,25 +104,27 @@ namespace quartz::usb::hid {
         // Explicitly specified by USB-IF for the Brazilian / ? key.
         International1 = 0x87,
 
-        LeftControl  = 0xE0,
-        LeftShift    = 0xE1,
-        LeftAlt      = 0xE2,
-        LeftGUI      = 0xE3,
+        LeftControl = 0xE0,
+        LeftShift = 0xE1,
+        LeftAlt = 0xE2,
+        LeftGUI = 0xE3,
         RightControl = 0xE4,
-        RightShift   = 0xE5,
-        RightAlt     = 0xE6,
-        RightGUI     = 0xE7,
+        RightShift = 0xE5,
+        RightAlt = 0xE6,
+        RightGUI = 0xE7,
     };
 
-    enum class KeyboardLED : std::uint8_t {
-        NumLock    = 1u << 0,
-        CapsLock   = 1u << 1,
+    enum class KeyboardLED : std::uint8_t
+    {
+        NumLock = 1u << 0,
+        CapsLock = 1u << 1,
         ScrollLock = 1u << 2,
-        Compose    = 1u << 3,
-        Kana       = 1u << 4,
+        Compose = 1u << 3,
+        Kana = 1u << 4,
     };
 }
 
-namespace quartz::kb {
+namespace quartz::kb
+{
     using Key = quartz::usb::hid::KeyboardUsage;
 }

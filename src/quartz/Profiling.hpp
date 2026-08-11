@@ -1,7 +1,8 @@
 #pragma once
 #include <cstdint>
 
-namespace quartz::profiling {
+namespace quartz::profiling
+{
     inline std::uint32_t BeginScanTicks = 0;
     inline std::uint32_t ScanTicks = 0;
     inline std::uint32_t EndScanTicks = 0;

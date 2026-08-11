@@ -1,18 +1,21 @@
 #pragma once
-#include <cstdint>
-#include <cstddef>
-#include <array>
 #include "MatrixPosition.hpp"
+#include <array>
+#include <cstddef>
+#include <cstdint>
 
-namespace quartz::utils {
+namespace quartz::utils
+{
     template <std::size_t Size>
-    class BitSet {
+    class BitSet
+    {
     public:
         std::array<std::uint8_t, (Size + 7) / 8> data = {};
 
         void zero() noexcept
         {
-            for (std::size_t i = 0; i < data.size(); ++i) {
+            for (std::size_t i = 0; i < data.size(); ++i)
+            {
                 data[i] = 0u;
             }
         }
@@ -23,18 +26,20 @@ namespace quartz::utils {
             *reinterpret_cast<std::uint16_t*>(bytePtr) = src;
         }
 
-        template<std::size_t N>
+        template <std::size_t N>
         void setUnsafe(const std::uint8_t* src, const std::size_t index) noexcept
         {
             auto* bytePtr = this->data.data() + index;
-            for (std::size_t i = 0; i < N; ++i) {
+            for (std::size_t i = 0; i < N; ++i)
+            {
                 *bytePtr++ = src[i];
             }
         }
 
         void set(std::size_t index) noexcept
         {
-            if (index >= Size) {
+            if (index >= Size)
+            {
                 return;
             }
 
@@ -46,7 +51,8 @@ namespace quartz::utils {
 
         void clear(std::size_t index) noexcept
         {
-            if (index >= Size) {
+            if (index >= Size)
+            {
                 return;
             }
 
@@ -58,7 +64,8 @@ namespace quartz::utils {
 
         std::uint8_t get(std::size_t index) const noexcept
         {
-            if (index >= Size) {
+            if (index >= Size)
+            {
                 return 0u;
             }
 
@@ -80,8 +87,10 @@ namespace quartz::utils {
 
         bool equals(const BitSet<Size>& other) const noexcept
         {
-            for (std::size_t i = 0; i < data.size(); ++i) {
-                if (data[i] != other.data[i]) {
+            for (std::size_t i = 0; i < data.size(); ++i)
+            {
+                if (data[i] != other.data[i])
+                {
                     return false;
                 }
             }
@@ -100,8 +109,10 @@ namespace quartz::utils {
 
         bool any() const noexcept
         {
-            for (std::size_t i = 0; i < data.size(); ++i) {
-                if (data[i] != 0u) {
+            for (std::size_t i = 0; i < data.size(); ++i)
+            {
+                if (data[i] != 0u)
+                {
                     return true;
                 }
             }
@@ -110,7 +121,8 @@ namespace quartz::utils {
 
         void cloneInto(BitSet<Size>& other) const noexcept
         {
-            for (std::size_t i = 0; i < data.size(); ++i) {
+            for (std::size_t i = 0; i < data.size(); ++i)
+            {
                 other.data[i] = data[i];
             }
         }

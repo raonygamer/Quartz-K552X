@@ -1,7 +1,7 @@
 #include "RGBMatrix.hpp"
+#include "cppmcu.h"
 #include "debug/DebugEndpoint.hpp"
 #include "kb/ElectricalMatrix.hpp"
-#include "cppmcu.h"
 #include <cstring>
 
 namespace quartz::kb::rgb
@@ -58,7 +58,8 @@ namespace quartz::kb::rgb
 
         // Reset TC + PC.
         SN_CT16B1->TMRCTRL = (1u << 1);
-        while (SN_CT16B1->TMRCTRL & (1u << 1)) {
+        while (SN_CT16B1->TMRCTRL & (1u << 1))
+        {
         }
 
         configureSelectorPinsOutput();
@@ -81,8 +82,10 @@ namespace quartz::kb::rgb
 
     void RGBMatrix::fill(const utils::Color32 color) noexcept
     {
-        for (std::size_t row = 0; row < Rows; ++row) {
-            for (std::size_t column = 0; column < Columns; ++column) {
+        for (std::size_t row = 0; row < Rows; ++row)
+        {
+            for (std::size_t column = 0; column < Columns; ++column)
+            {
                 Framebuffer[row][column] = color;
             }
         }
@@ -90,11 +93,7 @@ namespace quartz::kb::rgb
 
     void RGBMatrix::fill(const std::uint8_t r, const std::uint8_t g, const std::uint8_t b) noexcept
     {
-        fill(utils::Color32{
-            .R = r,
-            .G = g,
-            .B = b
-        });
+        fill(utils::Color32{ .R = r, .G = g, .B = b });
     }
 
     void RGBMatrix::setPixel(const std::uint8_t row, const std::uint8_t column, const utils::Color32 color) noexcept
@@ -107,14 +106,10 @@ namespace quartz::kb::rgb
 
     void RGBMatrix::setPixel(const std::uint8_t row, const std::uint8_t column, const std::uint8_t r, const std::uint8_t g, const std::uint8_t b) noexcept
     {
-        setPixel(row, column, utils::Color32{
-            .R = r,
-            .G = g,
-            .B = b
-        });
+        setPixel(row, column, utils::Color32{ .R = r, .G = g, .B = b });
     }
 
-    void RGBMatrix::setFramebuffer(const utils::Color32 *colors, std::size_t count) noexcept
+    void RGBMatrix::setFramebuffer(const utils::Color32* colors, std::size_t count) noexcept
     {
         if (colors == nullptr || count == 0u)
             return;
@@ -203,7 +198,8 @@ namespace quartz::kb::rgb
         // Restart each RGB slot from TC=0 so brightness doesn't depend on
         // whatever phase the timer happened to be at previously.
         SN_CT16B1->TMRCTRL = (1u << 1);
-        while (SN_CT16B1->TMRCTRL & (1u << 1)) {
+        while (SN_CT16B1->TMRCTRL & (1u << 1))
+        {
         }
 
         SN_CT16B1->TMRCTRL = 1u;
@@ -234,7 +230,7 @@ namespace quartz::kb::rgb
 
     void RGBMatrix::acquire() noexcept
     {
-        if (ElectricalMatrix::Ownership != SharedOwnership::Matrix) 
+        if (ElectricalMatrix::Ownership != SharedOwnership::Matrix)
             return;
 
         ElectricalMatrix::Ownership = SharedOwnership::RGBMatrix;
@@ -256,14 +252,16 @@ namespace quartz::kb::rgb
 
     void RGBMatrix::selectColumn(const std::uint8_t column) noexcept
     {
-        if (column < 2u) {
+        if (column < 2u)
+        {
             // col0 -> P2.0
             // col1 -> P2.1
             SN_GPIO2->BCLR = (1u << column);
             return;
         }
 
-        if (column < 12u) {
+        if (column < 12u)
+        {
             // col2  -> P2.3
             // ...
             // col11 -> P2.12
@@ -290,7 +288,8 @@ namespace quartz::kb::rgb
 
         // Reset TC + PC.
         SN_CT16B1->TMRCTRL = (1u << 1);
-        while (SN_CT16B1->TMRCTRL & (1u << 1)) {
+        while (SN_CT16B1->TMRCTRL & (1u << 1))
+        {
         }
 
         // Clear any stale MR24 interrupt.
@@ -344,7 +343,8 @@ namespace quartz::kb::rgb
         deselectAllColumns();
 
         advance();
-        if (ElectricalMatrix::Ownership == SharedOwnership::ScanHandOverRequest) {
+        if (ElectricalMatrix::Ownership == SharedOwnership::ScanHandOverRequest)
+        {
             ElectricalMatrix::Ownership = SharedOwnership::Matrix;
             return;
         }

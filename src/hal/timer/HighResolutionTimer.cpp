@@ -13,7 +13,8 @@ namespace quartz::hal
         SN_CT16B0->MCTRL = 0u;
 
         SN_CT16B0->TMRCTRL = (1u << 1);
-        while (SN_CT16B0->TMRCTRL & (1u << 1)) {
+        while (SN_CT16B0->TMRCTRL & (1u << 1))
+        {
         }
 
         OverflowCount = 0;
@@ -22,7 +23,8 @@ namespace quartz::hal
 
         // Get away from the initial TC == 0 so that MR0=0
         // represents the NEXT natural rollover.
-        while (SN_CT16B0->TC == 0u) {
+        while (SN_CT16B0->TC == 0u)
+        {
         }
 
         SN_CT16B0->MR0 = 0u;
@@ -43,15 +45,16 @@ namespace quartz::hal
         std::uint16_t tc2;
         std::uint8_t pc;
 
-        do {
+        do
+        {
             tc1 = static_cast<std::uint16_t>(SN_CT16B0->TC);
-            pc  = static_cast<std::uint8_t>(SN_CT16B0->PC);
+            pc = static_cast<std::uint8_t>(SN_CT16B0->PC);
             tc2 = static_cast<std::uint16_t>(SN_CT16B0->TC);
-        } while (tc1 != tc2);
+        }
+        while (tc1 != tc2);
 
-        return
-            (static_cast<std::uint32_t>(tc2) << 8) |
-            pc;
+        return (static_cast<std::uint32_t>(tc2) << 8) |
+               pc;
     }
 
     std::uint64_t HighResolutionTimer::nowTicks() noexcept
@@ -59,7 +62,8 @@ namespace quartz::hal
         const std::uint32_t primask = __get_PRIMASK();
         __disable_irq();
 
-        if (SN_CT16B0->RIS & 1u) {
+        if (SN_CT16B0->RIS & 1u)
+        {
             OverflowCount = OverflowCount + 1u;
             SN_CT16B0->IC = 1u;
         }
@@ -68,7 +72,8 @@ namespace quartz::hal
         std::uint32_t low = readHardwareTicks();
 
         // Catch a rollover that occurred while taking the snapshot.
-        if (SN_CT16B0->RIS & 1u) {
+        if (SN_CT16B0->RIS & 1u)
+        {
             OverflowCount = OverflowCount + 1u;
             SN_CT16B0->IC = 1u;
 
@@ -76,7 +81,8 @@ namespace quartz::hal
             low = readHardwareTicks();
         }
 
-        if (!primask) {
+        if (!primask)
+        {
             __enable_irq();
         }
 
@@ -98,7 +104,8 @@ namespace quartz::hal
         std::uint64_t elapsed = 0;
         std::uint32_t previous = readHardwareTicks();
 
-        while (elapsed < ticks) {
+        while (elapsed < ticks)
+        {
             const std::uint32_t current = readHardwareTicks();
             elapsed += (current - previous) & 0x00FFFFFFu;
             previous = current;

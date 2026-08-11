@@ -30,7 +30,8 @@ namespace quartz::hal::usb
         MemoryOffset(offset),
         MaxSize(maxSize)
     {
-        HARD_ASSERTC(!(direction == EndpointDirection::Both && Number == EndpointNumber::EP0), PanicReason::ENDPT_INVALID_DIREC);
+        HARD_ASSERTC(!(direction == EndpointDirection::Both && Number == EndpointNumber::EP0),
+                     PanicReason::ENDPT_INVALID_DIREC);
         HARD_ASSERTC(Number != EndpointNumber::EP0, PanicReason::ENDPT_EP0_NOT_CTRL);
         HARD_ASSERTC(Number <= EndpointNumber::EP4, PanicReason::ENDPT_INVALID_NUM);
         HARD_ASSERTC((MemoryOffset & 0x3u) == 0u, PanicReason::ENDPT_OFF_NALIGN);
@@ -244,7 +245,7 @@ namespace quartz::hal::usb
         if (Number == EndpointNumber::EP0)
             return;
         disable();
-        const std::uint32_t directionBit = 1u << (value(Number) -  1u);
+        const std::uint32_t directionBit = 1u << (value(Number) - 1u);
         SN_USB->CFG &= ~directionBit;
     }
 }

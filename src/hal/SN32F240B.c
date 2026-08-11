@@ -27,7 +27,6 @@
 #include <SN32F240B.h>
 
 
-
 /*
 //-------- <<< Use Configuration Wizard in Context Menu >>> ------------------
 */
@@ -95,56 +94,64 @@
 /*----------------------------------------------------------------------------
   Clock Variable definitions
  *----------------------------------------------------------------------------*/
-uint32_t SystemCoreClock;	/*!< System Clock Frequency (Core Clock)*/
+uint32_t SystemCoreClock; /*!< System Clock Frequency (Core Clock)*/
 
 
 /*----------------------------------------------------------------------------
   Clock functions
  *----------------------------------------------------------------------------*/
-void SystemCoreClockUpdate (void)            /* Get Core Clock Frequency      */
+void SystemCoreClockUpdate(void) /* Get Core Clock Frequency      */
 {
-	uint32_t AHB_prescaler;
+    uint32_t AHB_prescaler;
 
-	switch (SN_SYS0->CLKCFG_b.SYSCLKST)
-	{
-		case 0:		//IHRC
-			if(SN_SYS0->ANBCTRL == 1)
-				SystemCoreClock = __IHRC48_FREQ;
-			break;
-		case 1:		//ILRC
-			SystemCoreClock = __ILRC_FREQ;
-			break;
+    switch (SN_SYS0->CLKCFG_b.SYSCLKST)
+    {
+    case 0: //IHRC
+        if (SN_SYS0->ANBCTRL == 1)
+            SystemCoreClock = __IHRC48_FREQ;
+        break;
+    case 1: //ILRC
+        SystemCoreClock = __ILRC_FREQ;
+        break;
 
-		default:
-			break;
-	}
+    default:
+        break;
+    }
 
-	switch (SN_SYS0->AHBCP_b.AHBPRE)
-	{
-		case 0:	AHB_prescaler = 1;	break;
-		case 1:	AHB_prescaler = 2;	break;
-		case 2:	AHB_prescaler = 4;	break;
-		case 3:	AHB_prescaler = 8;	break;
-		case 4:	AHB_prescaler = 16;	break;
-		case 5:	AHB_prescaler = 32;	break;
-		case 6:	AHB_prescaler = 64;	break;
-		case 7:	AHB_prescaler = 128;break;
-		default: break;	
-	}
-	SystemCoreClock /= AHB_prescaler;
+    switch (SN_SYS0->AHBCP_b.AHBPRE)
+    {
+    case 0: AHB_prescaler = 1;
+        break;
+    case 1: AHB_prescaler = 2;
+        break;
+    case 2: AHB_prescaler = 4;
+        break;
+    case 3: AHB_prescaler = 8;
+        break;
+    case 4: AHB_prescaler = 16;
+        break;
+    case 5: AHB_prescaler = 32;
+        break;
+    case 6: AHB_prescaler = 64;
+        break;
+    case 7: AHB_prescaler = 128;
+        break;
+    default: break;
+    }
+    SystemCoreClock /= AHB_prescaler;
 
-	//;;;;;;;;; Need for SN32F240B Begin
-	if (SystemCoreClock > 24000000)
-	{
-		SN_FLASH->LPCTRL = 0x5AFA0005;
-	}
-	else if (SystemCoreClock > 12000000)
-		SN_FLASH->LPCTRL = 0x5AFA0003;
-	else
-		SN_FLASH->LPCTRL = 0x5AFA0000;
-	//;;;;;;;;; Need for SN32F240B End
+    //;;;;;;;;; Need for SN32F240B Begin
+    if (SystemCoreClock > 24000000)
+    {
+        SN_FLASH->LPCTRL = 0x5AFA0005;
+    }
+    else if (SystemCoreClock > 12000000)
+        SN_FLASH->LPCTRL = 0x5AFA0003;
+    else
+        SN_FLASH->LPCTRL = 0x5AFA0000;
+    //;;;;;;;;; Need for SN32F240B End
 
-	return;
+    return;
 }
 
 /**
@@ -156,33 +163,32 @@ void SystemCoreClockUpdate (void)            /* Get Core Clock Frequency      */
  * @brief  Setup the microcontroller system.
  *         Initialize the System.
  */
-void SystemInit (void)
+void SystemInit(void)
 {
 #if (SYS_CLOCK_SETUP)
 
-	#if SYS0_CLKCFG_VAL == IHRC48			//IHRC=48MHz
-	
-	SN_FLASH->LPCTRL = 0x5AFA0004;
-	SN_FLASH->LPCTRL = 0x5AFA0005;
-	
-	SN_SYS0->ANBCTRL = 0x1;
-	while ((SN_SYS0->CSST & 0x1) != 0x1);
-	SN_SYS0->CLKCFG = 0x0;
-	while ((SN_SYS0->CLKCFG & 0x70) != 0x0);
-	#endif
-	
-	#if SYS0_CLKCFG_VAL == ILRC			//ILRC ON
-	SN_FLASH->LPCTRL = 0x5AFA0000;
-	SN_SYS0->CLKCFG = 0x1;
-	while ((SN_SYS0->CLKCFG & 0x70) != 0x10);
-	#endif
-	
-	SN_SYS0->AHBCP_b.AHBPRE = AHB_PRESCALAR;
+#if SYS0_CLKCFG_VAL == IHRC48			//IHRC=48MHz
 
-	#if (CLKOUT_SEL_VAL > 0)			//CLKOUT
-	SN_SYS1->AHBCLKEN_b.CLKOUTSEL = CLKOUT_SEL_VAL;
-	SN_SYS1->APBCP1_b.CLKOUTPRE = CLKOUT_PRESCALAR;
-	#endif
+    SN_FLASH->LPCTRL = 0x5AFA0004;
+    SN_FLASH->LPCTRL = 0x5AFA0005;
+
+    SN_SYS0->ANBCTRL = 0x1;
+    while ((SN_SYS0->CSST & 0x1) != 0x1);
+    SN_SYS0->CLKCFG = 0x0;
+    while ((SN_SYS0->CLKCFG & 0x70) != 0x0);
+#endif
+
+#if SYS0_CLKCFG_VAL == ILRC			//ILRC ON
+    SN_FLASH->LPCTRL = 0x5AFA0000;
+    SN_SYS0->CLKCFG = 0x1;
+    while ((SN_SYS0->CLKCFG & 0x70) != 0x10);
+#endif
+
+    SN_SYS0->AHBCP_b.AHBPRE = AHB_PRESCALAR;
+
+#if (CLKOUT_SEL_VAL > 0)			//CLKOUT
+    SN_SYS1->AHBCLKEN_b.CLKOUTSEL = CLKOUT_SEL_VAL;
+    SN_SYS1->APBCP1_b.CLKOUTPRE = CLKOUT_PRESCALAR;
+#endif
 #endif //(SYS_CLOCK_SETUP)
-
 }

@@ -1,11 +1,12 @@
 #pragma once
-#include "usb/Device.hpp"
 #include "BootKeyboardReport.hpp"
+#include "usb/Device.hpp"
 #include "usb/hid/HIDProtocol.hpp"
 
-namespace quartz::usb::hid {
-    inline BootKeyboardReport PendingBootKeyboard {};
-    inline NKROKeyboardReport PendingReportKeyboard {};
+namespace quartz::usb::hid
+{
+    inline BootKeyboardReport PendingBootKeyboard{};
+    inline NKROKeyboardReport PendingReportKeyboard{};
     inline bool ReportDirty = false;
     inline auto LastProtocol = HIDProtocol::Boot;
 
@@ -33,14 +34,16 @@ namespace quartz::usb::hid {
 
         const auto protocol = Device::getProtocol();
 
-        if (protocol != LastProtocol) {
+        if (protocol != LastProtocol)
+        {
             LastProtocol = protocol;
             ReportDirty = true;
         }
 
         if (!ReportDirty)
             return;
-        switch (protocol) {
+        switch (protocol)
+        {
         case HIDProtocol::Boot:
             PendingBootKeyboard = kb::KeyboardState::buildBootReport();
             break;

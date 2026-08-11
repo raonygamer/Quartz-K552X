@@ -1,31 +1,39 @@
 #include "DebugEndpoint.hpp"
+#include "../../include/mcu/cppmcu.h"
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
-#include "../../include/mcu/cppmcu.h"
 
-namespace quartz::debug {
-    namespace {
-        class FormatBuffer {
+namespace quartz::debug
+{
+    namespace
+    {
+        class FormatBuffer
+        {
         public:
             static constexpr std::size_t Capacity = 192u;
 
             void append(const char character) noexcept
             {
-                if (size_ < Capacity) {
+                if (size_ < Capacity)
+                {
                     data_[size_++] = character;
-                } else {
+                }
+                else
+                {
                     truncated_ = true;
                 }
             }
 
             void append(const char* text) noexcept
             {
-                if (text == nullptr) {
+                if (text == nullptr)
+                {
                     text = "(null)";
                 }
 
-                while (*text != '\0') {
+                while (*text != '\0')
+                {
                     append(*text++);
                 }
             }
@@ -62,18 +70,21 @@ namespace quartz::debug {
         ) noexcept
         {
             const char* digits = uppercase
-                ? "0123456789ABCDEF"
-                : "0123456789abcdef";
+                                     ? "0123456789ABCDEF"
+                                     : "0123456789abcdef";
 
             char temporary[32];
             std::size_t length = 0u;
 
-            do {
+            do
+            {
                 temporary[length++] = digits[value % base];
                 value /= base;
-            } while (value != 0u);
+            }
+            while (value != 0u);
 
-            while (length != 0u) {
+            while (length != 0u)
+            {
                 output.append(temporary[--length]);
             }
         }
@@ -83,13 +94,14 @@ namespace quartz::debug {
             const std::int32_t value
         ) noexcept
         {
-            if (value < 0) {
+            if (value < 0)
+            {
                 output.append('-');
 
                 /*
-                * Avoid overflowing on INT32_MIN by converting through unsigned
-                * arithmetic rather than evaluating -value directly.
-                */
+                 * Avoid overflowing on INT32_MIN by converting through unsigned
+                 * arithmetic rather than evaluating -value directly.
+                 */
                 const std::uint32_t magnitude =
                     0u - static_cast<std::uint32_t>(value);
 
@@ -113,25 +125,28 @@ namespace quartz::debug {
         ) noexcept
         {
             const char* digits = uppercase
-                ? "0123456789ABCDEF"
-                : "0123456789abcdef";
+                                     ? "0123456789ABCDEF"
+                                     : "0123456789abcdef";
 
             char temporary[32];
             std::size_t length = 0u;
 
-            do {
+            do
+            {
                 temporary[length++] = digits[value % base];
                 value /= base;
-            } while (value != 0u);
+            }
+            while (value != 0u);
 
-            while (length != 0u) {
+            while (length != 0u)
+            {
                 output.append(temporary[--length]);
             }
         }
     }
 
-
-    namespace {
+    namespace
+    {
         [[nodiscard]]
         std::uint32_t enterCriticalSection() noexcept
         {
@@ -144,7 +159,8 @@ namespace quartz::debug {
             const std::uint32_t previousState
         ) noexcept
         {
-            if ((previousState & 1u) == 0u) {
+            if ((previousState & 1u) == 0u)
+            {
                 __enable_irq();
             }
         }
@@ -152,7 +168,8 @@ namespace quartz::debug {
 
     std::size_t DebugEndpoint::write(const std::uint8_t* const data, const std::size_t size) noexcept
     {
-        if (data == nullptr || size == 0u) {
+        if (data == nullptr || size == 0u)
+        {
             return 0u;
         }
 
@@ -161,7 +178,8 @@ namespace quartz::debug {
 
         std::size_t accepted = 0u;
 
-        while (accepted < size && count < QueueSize) {
+        while (accepted < size && count < QueueSize)
+        {
             queue[head] = data[accepted];
 
             head = (head + 1u) % QueueSize;
@@ -182,13 +200,15 @@ namespace quartz::debug {
 
     std::size_t DebugEndpoint::writeString(const char* const text) noexcept
     {
-        if (text == nullptr) {
+        if (text == nullptr)
+        {
             return 0u;
         }
 
         std::size_t length = 0u;
 
-        while (text[length] != '\0') {
+        while (text[length] != '\0')
+        {
             ++length;
         }
 
@@ -203,7 +223,8 @@ namespace quartz::debug {
         ...
     ) noexcept
     {
-        if (format == nullptr) {
+        if (format == nullptr)
+        {
             return 0u;
         }
 
@@ -213,112 +234,116 @@ namespace quartz::debug {
         va_start(arguments, format);
 
         for (const char* current = format;
-            *current != '\0';
-            ++current) {
-            if (*current != '%') {
+             *current != '\0';
+             ++current)
+        {
+            if (*current != '%')
+            {
                 output.append(*current);
                 continue;
             }
 
             ++current;
 
-            if (*current == '\0') {
+            if (*current == '\0')
+            {
                 output.append('%');
                 break;
             }
 
-            switch (*current) {
-                case '%':
-                    output.append('%');
-                    break;
+            switch (*current)
+            {
+            case '%':
+                output.append('%');
+                break;
 
-                case 'c': {
-                    const int value = va_arg(arguments, int);
-                    output.append(static_cast<char>(value));
-                    break;
-                }
+            case 'c': {
+                const int value = va_arg(arguments, int);
+                output.append(static_cast<char>(value));
+                break;
+            }
 
-                case 's': {
-                    const char* value =
-                        va_arg(arguments, const char*);
+            case 's': {
+                const char* value =
+                    va_arg(arguments, const char*);
 
-                    output.append(value);
-                    break;
-                }
+                output.append(value);
+                break;
+            }
 
-                case 'd':
-                case 'i': {
-                    const int value = va_arg(arguments, int);
+            case 'd':
+            case 'i': {
+                const int value = va_arg(arguments, int);
 
-                    appendSigned(
-                        output,
-                        static_cast<std::int32_t>(value)
-                    );
-                    break;
-                }
+                appendSigned(
+                    output,
+                    static_cast<std::int32_t>(value)
+                );
+                break;
+            }
 
-                case 'u': {
-                    const unsigned int value =
-                        va_arg(arguments, unsigned int);
+            case 'u': {
+                const unsigned int value =
+                    va_arg(arguments, unsigned int);
 
-                    appendUnsigned(
-                        output,
-                        static_cast<std::uint32_t>(value),
-                        10u,
-                        false
-                    );
-                    break;
-                }
+                appendUnsigned(
+                    output,
+                    static_cast<std::uint32_t>(value),
+                    10u,
+                    false
+                );
+                break;
+            }
 
-                case 'l': {
-                    const unsigned long long value =
-                        va_arg(arguments, unsigned long long);
+            case 'l': {
+                const unsigned long long value =
+                    va_arg(arguments, unsigned long long);
 
-                    appendLong(
-                        output,
-                        static_cast<std::uint64_t>(value),
-                        10u,
-                        false
-                    );
-                    break;
-                }
+                appendLong(
+                    output,
+                    static_cast<std::uint64_t>(value),
+                    10u,
+                    false
+                );
+                break;
+            }
 
-                case 'x':
-                case 'X': {
-                    const unsigned int value =
-                        va_arg(arguments, unsigned int);
+            case 'x':
+            case 'X': {
+                const unsigned int value =
+                    va_arg(arguments, unsigned int);
 
-                    appendUnsigned(
-                        output,
-                        static_cast<std::uint32_t>(value),
-                        16u,
-                        *current == 'X'
-                    );
-                    break;
-                }
+                appendUnsigned(
+                    output,
+                    static_cast<std::uint32_t>(value),
+                    16u,
+                    *current == 'X'
+                );
+                break;
+            }
 
-                case 'p': {
-                    const void* pointer =
-                        va_arg(arguments, const void*);
+            case 'p': {
+                const void* pointer =
+                    va_arg(arguments, const void*);
 
-                    output.append("0x");
+                output.append("0x");
 
-                    appendUnsigned(
-                        output,
-                        static_cast<std::uint32_t>(
-                            reinterpret_cast<std::uintptr_t>(pointer)
-                        ),
-                        16u,
-                        false
-                    );
-                    break;
-                }
+                appendUnsigned(
+                    output,
+                    static_cast<std::uint32_t>(
+                        reinterpret_cast<std::uintptr_t>(pointer)
+                    ),
+                    16u,
+                    false
+                );
+                break;
+            }
 
-                default:
-                    // Preserve unknown specifiers visibly.
-                    output.append('%');
-                    output.append(*current);
-                    break;
+            default:
+                // Preserve unknown specifiers visibly.
+                output.append('%');
+                output.append(*current);
+                break;
             }
         }
 
@@ -326,7 +351,7 @@ namespace quartz::debug {
 
         return write(output.data(), output.size());
     }
-    
+
     void DebugEndpoint::pump() noexcept
     {
         // if (!configured || transmitting || count == 0u) {

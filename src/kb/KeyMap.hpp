@@ -1,19 +1,22 @@
 #pragma once
 
+#include "usb/hid/KeyboardUsage.hpp"
 #include <cstddef>
 #include <cstdint>
-#include "usb/hid/KeyboardUsage.hpp"
 
-namespace quartz::kb {
-    enum class KeyActionType : std::uint8_t {
+namespace quartz::kb
+{
+    enum class KeyActionType : std::uint8_t
+    {
         None,
         HID,
         Fn,
     };
 
-    struct KeyAction {
-        KeyActionType Type { KeyActionType::None };
-        usb::hid::KeyboardUsage Usage {
+    struct KeyAction
+    {
+        KeyActionType Type{ KeyActionType::None };
+        usb::hid::KeyboardUsage Usage{
             usb::hid::KeyboardUsage::None
         };
 
@@ -41,142 +44,155 @@ namespace quartz::kb {
         }
     };
 
-    struct KeyMap {
+    struct KeyMap
+    {
         static constexpr std::size_t Rows = 7;
         static constexpr std::size_t Cols = 16;
 
         using K = usb::hid::KeyboardUsage;
 
-        inline static constexpr auto UsageToMatrixPosition = [] {
+        inline static constexpr auto UsageToMatrixPosition = []
+        {
             std::array<utils::MatrixPosition, 256> positions{};
 
-            for (auto& position : positions) {
-                position = {-1, -1};
+            for (auto& position : positions)
+            {
+                position = { -1, -1 };
             }
 
-            const auto set = [&positions](K usage, int row, int col) constexpr {
-                positions[static_cast<std::uint8_t>(usage)] = {row, col};
+            const auto set = [&positions](K usage, int row, int col) constexpr
+            {
+                positions[static_cast<std::uint8_t>(usage)] = { row, col };
             };
 
             // Row 1 - function row
-            set(K::Escape,      1, 0);
-            set(K::F1,          1, 1);
-            set(K::F2,          1, 2);
-            set(K::F3,          1, 3);
-            set(K::F4,          1, 4);
-            set(K::F5,          1, 5);
-            set(K::F6,          1, 6);
-            set(K::F7,          1, 7);
-            set(K::F8,          1, 8);
-            set(K::F9,          1, 9);
-            set(K::F10,         1, 10);
-            set(K::F11,         1, 11);
-            set(K::F12,         1, 12);
+            set(K::Escape, 1, 0);
+            set(K::F1, 1, 1);
+            set(K::F2, 1, 2);
+            set(K::F3, 1, 3);
+            set(K::F4, 1, 4);
+            set(K::F5, 1, 5);
+            set(K::F6, 1, 6);
+            set(K::F7, 1, 7);
+            set(K::F8, 1, 8);
+            set(K::F9, 1, 9);
+            set(K::F10, 1, 10);
+            set(K::F11, 1, 11);
+            set(K::F12, 1, 12);
             set(K::PrintScreen, 1, 13);
-            set(K::ScrollLock,  1, 14);
-            set(K::Pause,       1, 15);
+            set(K::ScrollLock, 1, 14);
+            set(K::Pause, 1, 15);
 
             // Row 2 - modifiers / space / arrows
-            set(K::LeftControl,  2, 0);
-            set(K::LeftGUI,      2, 1);
-            set(K::LeftAlt,      2, 2);
-            set(K::Space,        2, 6);
-            set(K::RightAlt,     2, 9);
-            set(K::Application,  2, 11);
+            set(K::LeftControl, 2, 0);
+            set(K::LeftGUI, 2, 1);
+            set(K::LeftAlt, 2, 2);
+            set(K::Space, 2, 6);
+            set(K::RightAlt, 2, 9);
+            set(K::Application, 2, 11);
             set(K::RightControl, 2, 12);
-            set(K::LeftArrow,    2, 13);
-            set(K::DownArrow,    2, 14);
-            set(K::RightArrow,   2, 15);
+            set(K::LeftArrow, 2, 13);
+            set(K::DownArrow, 2, 14);
+            set(K::RightArrow, 2, 15);
 
             // Row 3 - bottom alpha row
-            set(K::LeftShift,      3, 0);
+            set(K::LeftShift, 3, 0);
             set(K::NonUSBackslash, 3, 1);
-            set(K::Z,              3, 2);
-            set(K::X,              3, 3);
-            set(K::C,              3, 4);
-            set(K::V,              3, 5);
-            set(K::B,              3, 6);
-            set(K::N,              3, 7);
-            set(K::M,              3, 8);
-            set(K::Comma,          3, 9);
-            set(K::Period,         3, 10);
-            set(K::Slash,          3, 11);
+            set(K::Z, 3, 2);
+            set(K::X, 3, 3);
+            set(K::C, 3, 4);
+            set(K::V, 3, 5);
+            set(K::B, 3, 6);
+            set(K::N, 3, 7);
+            set(K::M, 3, 8);
+            set(K::Comma, 3, 9);
+            set(K::Period, 3, 10);
+            set(K::Slash, 3, 11);
             set(K::International1, 3, 12);
-            set(K::UpArrow,        3, 14);
-            set(K::RightShift,     3, 15);
+            set(K::UpArrow, 3, 14);
+            set(K::RightShift, 3, 15);
 
             // Row 4 - home row
-            set(K::CapsLock,    4, 0);
-            set(K::A,           4, 1);
-            set(K::S,           4, 2);
-            set(K::D,           4, 3);
-            set(K::F,           4, 4);
-            set(K::G,           4, 5);
-            set(K::H,           4, 6);
-            set(K::J,           4, 7);
-            set(K::K,           4, 8);
-            set(K::L,           4, 9);
-            set(K::Semicolon,   4, 10);
-            set(K::Apostrophe,  4, 11);
-            set(K::NonUSHash,   4, 12);
-            set(K::Backspace,   4, 13);
-            set(K::Enter,       4, 15);
+            set(K::CapsLock, 4, 0);
+            set(K::A, 4, 1);
+            set(K::S, 4, 2);
+            set(K::D, 4, 3);
+            set(K::F, 4, 4);
+            set(K::G, 4, 5);
+            set(K::H, 4, 6);
+            set(K::J, 4, 7);
+            set(K::K, 4, 8);
+            set(K::L, 4, 9);
+            set(K::Semicolon, 4, 10);
+            set(K::Apostrophe, 4, 11);
+            set(K::NonUSHash, 4, 12);
+            set(K::Backspace, 4, 13);
+            set(K::Enter, 4, 15);
 
             // Row 5 - QWERTY row
-            set(K::Tab,          5, 0);
-            set(K::Q,            5, 1);
-            set(K::W,            5, 2);
-            set(K::E,            5, 3);
-            set(K::R,            5, 4);
-            set(K::T,            5, 5);
-            set(K::Y,            5, 6);
-            set(K::U,            5, 7);
-            set(K::I,            5, 8);
-            set(K::O,            5, 9);
-            set(K::P,            5, 10);
-            set(K::LeftBracket,  5, 11);
+            set(K::Tab, 5, 0);
+            set(K::Q, 5, 1);
+            set(K::W, 5, 2);
+            set(K::E, 5, 3);
+            set(K::R, 5, 4);
+            set(K::T, 5, 5);
+            set(K::Y, 5, 6);
+            set(K::U, 5, 7);
+            set(K::I, 5, 8);
+            set(K::O, 5, 9);
+            set(K::P, 5, 10);
+            set(K::LeftBracket, 5, 11);
             set(K::RightBracket, 5, 12);
-            set(K::Delete,       5, 13);
-            set(K::End,          5, 14);
-            set(K::PageDown,     5, 15);
+            set(K::Delete, 5, 13);
+            set(K::End, 5, 14);
+            set(K::PageDown, 5, 15);
 
             // Row 6 - number row
             set(K::GraveAccent, 6, 0);
-            set(K::Digit1,      6, 1);
-            set(K::Digit2,      6, 2);
-            set(K::Digit3,      6, 3);
-            set(K::Digit4,      6, 4);
-            set(K::Digit5,      6, 5);
-            set(K::Digit6,      6, 6);
-            set(K::Digit7,      6, 7);
-            set(K::Digit8,      6, 8);
-            set(K::Digit9,      6, 9);
-            set(K::Digit0,      6, 10);
-            set(K::Minus,       6, 11);
-            set(K::Equal,       6, 12);
-            set(K::Insert,      6, 13);
-            set(K::Home,        6, 14);
-            set(K::PageUp,      6, 15);
+            set(K::Digit1, 6, 1);
+            set(K::Digit2, 6, 2);
+            set(K::Digit3, 6, 3);
+            set(K::Digit4, 6, 4);
+            set(K::Digit5, 6, 5);
+            set(K::Digit6, 6, 6);
+            set(K::Digit7, 6, 7);
+            set(K::Digit8, 6, 8);
+            set(K::Digit9, 6, 9);
+            set(K::Digit0, 6, 10);
+            set(K::Minus, 6, 11);
+            set(K::Equal, 6, 12);
+            set(K::Insert, 6, 13);
+            set(K::Home, 6, 14);
+            set(K::PageUp, 6, 15);
 
             return positions;
         }();
 
-        [[nodiscard]] static constexpr utils::MatrixPosition getMatrixPosition(K usage) noexcept {
+        [[nodiscard]] static constexpr utils::MatrixPosition getMatrixPosition(K usage) noexcept
+        {
             const auto index = static_cast<std::uint16_t>(usage);
-            return index < UsageToMatrixPosition.size() ? UsageToMatrixPosition[index] : utils::MatrixPosition{-1, -1};
+            return index < UsageToMatrixPosition.size() ? UsageToMatrixPosition[index] : utils::MatrixPosition{ -1, -1 };
         }
 
         inline static constexpr KeyAction Actions[Rows][Cols] = {
             // Row 0
             {
-                KeyAction::none(), KeyAction::none(),
-                KeyAction::none(), KeyAction::none(),
-                KeyAction::none(), KeyAction::none(),
-                KeyAction::none(), KeyAction::none(),
-                KeyAction::none(), KeyAction::none(),
-                KeyAction::none(), KeyAction::none(),
-                KeyAction::none(), KeyAction::none(),
-                KeyAction::none(), KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
+                KeyAction::none(),
             },
 
             // Row 1 - function row
@@ -221,22 +237,22 @@ namespace quartz::kb {
 
             // Row 3 - bottom alpha row
             {
-                KeyAction::hid(K::LeftShift),        // 0
-                KeyAction::hid(K::NonUSBackslash),   // 1  \ |
-                KeyAction::hid(K::Z),                // 2
-                KeyAction::hid(K::X),                // 3
-                KeyAction::hid(K::C),                // 4
-                KeyAction::hid(K::V),                // 5
-                KeyAction::hid(K::B),                // 6
-                KeyAction::hid(K::N),                // 7
-                KeyAction::hid(K::M),                // 8
-                KeyAction::hid(K::Comma),            // 9
-                KeyAction::hid(K::Period),           // 10
-                KeyAction::hid(K::Slash),            // 11 ; :
-                KeyAction::hid(K::International1),   // 12 / ?
-                KeyAction::none(),                   // 13
-                KeyAction::hid(K::UpArrow),          // 14
-                KeyAction::hid(K::RightShift),       // 15
+                KeyAction::hid(K::LeftShift),      // 0
+                KeyAction::hid(K::NonUSBackslash), // 1  \ |
+                KeyAction::hid(K::Z),              // 2
+                KeyAction::hid(K::X),              // 3
+                KeyAction::hid(K::C),              // 4
+                KeyAction::hid(K::V),              // 5
+                KeyAction::hid(K::B),              // 6
+                KeyAction::hid(K::N),              // 7
+                KeyAction::hid(K::M),              // 8
+                KeyAction::hid(K::Comma),          // 9
+                KeyAction::hid(K::Period),         // 10
+                KeyAction::hid(K::Slash),          // 11 ; :
+                KeyAction::hid(K::International1), // 12 / ?
+                KeyAction::none(),                 // 13
+                KeyAction::hid(K::UpArrow),        // 14
+                KeyAction::hid(K::RightShift),     // 15
             },
 
             // Row 4 - home row

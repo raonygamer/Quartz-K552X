@@ -31,12 +31,7 @@ namespace quartz::usb::proto
         HARD_ASSERTC(buff.size() != 0, PanicReason::TRANS_COUT_BUF_ZLEN);
         HARD_ASSERT(expected <= buff.size());
         const auto& endpoint = hal::usb::Controller::getEndpoint(num);
-        auto& [
-            tData,
-            tOffset,
-            tExpectedLen,
-            tActive
-        ] = State.Out[value(num)];
+        auto& [tData, tOffset, tExpectedLen, tActive] = State.Out[value(num)];
         HARD_ASSERTC(endpoint.isOut(), PanicReason::ENDPT_NOUT_CFG);
         HARD_ASSERTC(!tActive, PanicReason::TRANS_COUT_ACTIVE);
         HARD_ASSERTC(endpoint.isIdle(), PanicReason::ENDPT_NOT_IDLE);
@@ -54,13 +49,7 @@ namespace quartz::usb::proto
         HARD_ASSERTC(buff.data() != nullptr, PanicReason::TRANS_CIN_NUL_BUF);
         HARD_ASSERTC(buff.size() != 0, PanicReason::TRANS_CIN_BUF_ZLEN);
         const auto& endpoint = hal::usb::Controller::getEndpoint(num);
-        auto& [
-            tData,
-            tOffset,
-            tInFlight,
-            tActive,
-            tFinishZlp
-        ] = State.In[value(num)];
+        auto& [tData, tOffset, tInFlight, tActive, tFinishZlp] = State.In[value(num)];
         HARD_ASSERTC(endpoint.isIn(), PanicReason::ENDPT_NIN_CFG);
         HARD_ASSERTC(!tActive, PanicReason::TRANS_CIN_ACTIVE);
         HARD_ASSERTC(endpoint.isIdle(), PanicReason::ENDPT_NOT_IDLE);

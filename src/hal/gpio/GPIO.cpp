@@ -1,8 +1,9 @@
 #include "GPIO.hpp"
 
-
-namespace quartz::hal {
-    namespace {
+namespace quartz::hal
+{
+    namespace
+    {
         constexpr std::uint32_t ConfigurationMask = 0b11u;
 
         constexpr std::uint32_t ConfigurationPullUp = 0b00u;
@@ -32,11 +33,12 @@ namespace quartz::hal {
         std::uint32_t getPinConfiguration(volatile SN_GPIO0_Type* const gpio, const GPIOPin pin) noexcept
         {
             return (
-                gpio->CFG >> getConfigurationShift(pin)
-            ) & ConfigurationMask;
+                       gpio->CFG >> getConfigurationShift(pin)
+                   ) &
+                   ConfigurationMask;
         }
     }
-    
+
     volatile SN_GPIO0_Type* GPIO::getPort(GPIOPort port) noexcept
     {
         const auto portIndex = static_cast<std::uintptr_t>(port);
@@ -112,43 +114,45 @@ namespace quartz::hal {
         return gpio->DATA;
     }
 
-    void GPIO::setPinPull(GPIOPort port, GPIOPin pin, GPIOPull pull) noexcept 
+    void GPIO::setPinPull(GPIOPort port, GPIOPin pin, GPIOPull pull) noexcept
     {
         auto* gpio = getPort(port);
-        switch (pull) {
-            case GPIOPull::PullUp:
-                setPinConfiguration(
-                    gpio,
-                    pin,
-                    ConfigurationPullUp
-                );
-                return;
+        switch (pull)
+        {
+        case GPIOPull::PullUp:
+            setPinConfiguration(
+                gpio,
+                pin,
+                ConfigurationPullUp
+            );
+            return;
 
-            case GPIOPull::None: {
-                /*
-                 * Preserve the disabled input buffer state when one
-                 * has already been selected.
-                 */
-                const std::uint32_t current =
-                    getPinConfiguration(gpio, pin);
+        case GPIOPull::None: {
+            /*
+             * Preserve the disabled input buffer state when one
+             * has already been selected.
+             */
+            const std::uint32_t current =
+                getPinConfiguration(gpio, pin);
 
-                setPinConfiguration(
-                    gpio,
-                    pin,
-                    current == ConfigurationInputBufferDisabled
-                        ? ConfigurationInputBufferDisabled
-                        : ConfigurationDigitalInput
-                );
+            setPinConfiguration(
+                gpio,
+                pin,
+                current == ConfigurationInputBufferDisabled
+                    ? ConfigurationInputBufferDisabled
+                    : ConfigurationDigitalInput
+            );
 
-                return;
-            }
+            return;
+        }
         }
     }
 
-    void GPIO::setPinInputBuffer(GPIOPort port, GPIOPin pin, bool enabled) noexcept 
+    void GPIO::setPinInputBuffer(GPIOPort port, GPIOPin pin, bool enabled) noexcept
     {
         auto* gpio = getPort(port);
-        if (enabled) {
+        if (enabled)
+        {
             const std::uint32_t current =
                 getPinConfiguration(gpio, pin);
 
@@ -181,13 +185,14 @@ namespace quartz::hal {
         );
     }
 
-    void GPIO::setPinAnalog(GPIOPort port, GPIOPin pin, bool enabled) noexcept 
+    void GPIO::setPinAnalog(GPIOPort port, GPIOPin pin, bool enabled) noexcept
     {
         /*
          * AIN0–AIN15 are P2.0–P2.15. With your port numbering,
          * P2 is GPIOPort::C.
          */
-        if (port != GPIOPort::C) {
+        if (port != GPIOPort::C)
+        {
             return;
         }
 
@@ -197,7 +202,8 @@ namespace quartz::hal {
             GPIOMode::Input
         );
 
-        if (enabled) {
+        if (enabled)
+        {
             setPinLow(port, pin);
 
             setPinConfiguration(

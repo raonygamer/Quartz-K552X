@@ -4,12 +4,12 @@
 #include "hal/timer/HighResolutionTimer.hpp"
 #include "hal/usb/Controller.hpp"
 #include "kb/KeyboardState.hpp"
-#include "usb/Descriptors.hpp"
-#include "usb/protocol/pipes/TransferPipe.hpp"
-#include "usb/protocol/payloads/StandardRequest.hpp"
-#include "usb/hid/KeyboardReporter.hpp"
-#include "quartz/rpc/RPC.hpp"
 #include "kb/rgb/RGBMatrix.hpp"
+#include "quartz/rpc/RPC.hpp"
+#include "usb/Descriptors.hpp"
+#include "usb/hid/KeyboardReporter.hpp"
+#include "usb/protocol/payloads/StandardRequest.hpp"
+#include "usb/protocol/pipes/TransferPipe.hpp"
 
 namespace quartz::usb
 {
@@ -46,7 +46,9 @@ namespace quartz::usb
             _cancelPendingState();
             State.Setup = proto::ControlPipe::beginSetup();
             const auto current = hal::usb::Controller::getInterruptStatus();
-            if (hal::usb::hasInterrupt(current, hal::usb::Interrupt::EP0PreSetup) || hal::usb::hasInterrupt(current, hal::usb::Interrupt::EP0Setup))
+            if (hal::usb::hasInterrupt(current, hal::usb::Interrupt::EP0PreSetup) || hal::usb::hasInterrupt(
+                                                                                         current, hal::usb::Interrupt::EP0Setup
+                                                                                     ))
             {
                 proto::ControlPipe::reset();
                 return;
@@ -258,7 +260,7 @@ namespace quartz::usb
         switch (reportType)
         {
         case hid::HIDReportType::Output:
-            sendControlResponse(std::span { &kb::KeyboardState::CurrentLEDState.Raw, 1 }, setup.length);
+            sendControlResponse(std::span{ &kb::KeyboardState::CurrentLEDState.Raw, 1 }, setup.length);
             return;
         case hid::HIDReportType::Input:
             _sendCurrentKeyboardReportControl();
@@ -285,11 +287,13 @@ namespace quartz::usb
         {
         case hid::HIDReportType::Output:
             State.ControlOut = hid::ControlOutType::HIDOutputReport;
-            proto::ControlPipe::startTransferOut(std::as_writable_bytes(std::span { &State.HIDOutputReport, 1 }));
+            proto::ControlPipe::startTransferOut(std::as_writable_bytes(std::span{ &State.HIDOutputReport, 1 }));
             return;
         case hid::HIDReportType::Feature:
             State.ControlOut = hid::ControlOutType::HIDFeatureReport;
-            proto::ControlPipe::startTransferOut(std::as_writable_bytes(std::span { &State.HIDFeatureBuffer, setup.length }));
+            proto::ControlPipe::startTransferOut(
+                std::as_writable_bytes(std::span{ &State.HIDFeatureBuffer, setup.length })
+            );
             return;
         default:
             break;
@@ -310,8 +314,7 @@ namespace quartz::usb
 
         switch (setup.request)
         {
-        case hid::HIDRequest::SET_IDLE:
-        {
+        case hid::HIDRequest::SET_IDLE: {
             const auto reportId = static_cast<std::uint8_t>(setup.value);
             if (setup.isDeviceToHost() || reportId != 0 || setup.length != 0)
             {
@@ -323,8 +326,7 @@ namespace quartz::usb
             proto::ControlPipe::startStatusIn();
             return;
         }
-        case hid::HIDRequest::GET_IDLE:
-        {
+        case hid::HIDRequest::GET_IDLE: {
             const auto reportId = static_cast<std::uint8_t>(setup.value);
             if (!setup.isDeviceToHost() || (setup.value >> 8) != 0 || reportId != 0 || setup.length != 1)
             {
@@ -332,7 +334,7 @@ namespace quartz::usb
                 return;
             }
 
-            proto::ControlPipe::startTransferIn(std::as_bytes(std::span { &State.IdleRate, 1 }));
+            proto::ControlPipe::startTransferIn(std::as_bytes(std::span{ &State.IdleRate, 1 }));
             return;
         }
         case hid::HIDRequest::SET_PROTOCOL:
@@ -352,7 +354,7 @@ namespace quartz::usb
                 return;
             }
 
-            proto::ControlPipe::startTransferIn(std::as_bytes(std::span { &State.Protocol, 1 }));
+            proto::ControlPipe::startTransferIn(std::as_bytes(std::span{ &State.Protocol, 1 }));
             return;
         case hid::HIDRequest::SET_REPORT:
             _handleSetHIDReport();

@@ -1,7 +1,8 @@
 #pragma once
 #include <cstdint>
 
-namespace quartz::usb::hid {
+namespace quartz::usb::hid
+{
     struct HIDRequest
     {
         static constexpr std::uint8_t GET_REPORT = 0x01;

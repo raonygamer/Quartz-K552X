@@ -1,18 +1,23 @@
 #pragma once
 #include "cppmcu.h"
 
-namespace quartz::rt {
-    class Concurrency {
+namespace quartz::rt
+{
+    class Concurrency
+    {
     public:
-        inline static void enterCriticalSection() noexcept {
+        inline static void enterCriticalSection() noexcept
+        {
             __disable_irq();
         }
 
-        inline static void exitCriticalSection() noexcept {
+        inline static void exitCriticalSection() noexcept
+        {
             __enable_irq();
         }
 
-        inline static void executeInCriticalSection(const auto& func) noexcept {
+        inline static void executeInCriticalSection(const auto& func) noexcept
+        {
             const auto mask = __get_PRIMASK();
             enterCriticalSection();
             func();

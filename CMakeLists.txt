@@ -9,11 +9,11 @@ set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 set(TOOLCHAIN_PREFIX arm-none-eabi-)
 
 # These must be selected before project() enables the languages.
-set(CMAKE_C_COMPILER   ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
 set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
 set(CMAKE_ASM_COMPILER ${TOOLCHAIN_PREFIX}gcc)
-set(CMAKE_OBJCOPY      ${TOOLCHAIN_PREFIX}objcopy)
-set(CMAKE_SIZE         ${TOOLCHAIN_PREFIX}size)
+set(CMAKE_OBJCOPY ${TOOLCHAIN_PREFIX}objcopy)
+set(CMAKE_SIZE ${TOOLCHAIN_PREFIX}size)
 
 project(QuartzK552X LANGUAGES C CXX ASM)
 
@@ -29,8 +29,8 @@ set(MCPU cortex-m0)
 set(FIRMWARE_TARGET quartz-k552x)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
-    src/*.c
-    src/*.cpp
+        src/*.c
+        src/*.cpp
 )
 
 add_executable(${FIRMWARE_TARGET}

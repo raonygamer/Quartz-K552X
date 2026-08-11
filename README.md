@@ -4,9 +4,11 @@
 
 Quartz K552X is a personal firmware rewrite for the SN32F248B found in the K552W RGB PRO.
 
-The goal isn't to clone the original firmware, but to build a clean, modern firmware from scratch while learning how the hardware actually works (and probably questioning my life choices every now and then).
+The goal isn't to clone the original firmware, but to build a clean, modern firmware from scratch while learning how the
+hardware actually works (and probably questioning my life choices every now and then).
 
-This project is written **for my own keyboard**. It's public because someone else might find it useful or interesting, but I do **not** intend to support other keyboards or MCU variants.
+This project is written **for my own keyboard**. It's public because someone else might find it useful or interesting,
+but I do **not** intend to support other keyboards or MCU variants.
 
 ## Goals
 
@@ -22,7 +24,8 @@ This project is written **for my own keyboard**. It's public because someone els
 
 ### Future ideas *(hardware permitting / no promises)*
 
-These are features I'd *love* to implement, but first I need to figure out whether the hardware actually exposes enough information.
+These are features I'd *love* to implement, but first I need to figure out whether the hardware actually exposes enough
+information.
 
 - Configurable Hall-effect actuation
 - Rapid Trigger
@@ -48,17 +51,22 @@ Currently working on:
 
 Mostly because I wanted to.
 
-The SN32F248B has a built-in ROM bootloader that makes experimentation surprisingly forgiving. If the firmware completely explodes (which it occasionally does), holding the **BOOT** pin low during power-up jumps straight into the bootloader, letting the firmware be flashed again.
+The SN32F248B has a built-in ROM bootloader that makes experimentation surprisingly forgiving. If the firmware
+completely explodes (which it occasionally does), holding the **BOOT** pin low during power-up jumps straight into the
+bootloader, letting the firmware be flashed again.
 
-That makes it a fantastic little platform for learning bare-metal firmware development without immediately turning the keyboard into an expensive paperweight.
+That makes it a fantastic little platform for learning bare-metal firmware development without immediately turning the
+keyboard into an expensive paperweight.
 
 ## Warning
 
 This firmware is **only** intended for the **Redragon Kumara K552W RGB PRO** using the **SN32F248B** MCU.
 
-Although this MCU is fairly forgiving thanks to its ROM bootloader, flashing custom firmware is always done **at your own risk**.
+Although this MCU is fairly forgiving thanks to its ROM bootloader, flashing custom firmware is always done **at your
+own risk**.
 
-Please **don't** flash this onto random Sonix keyboards just because they look similar. Different MCUs may have different bootloaders—or none at all—and recovery might require dedicated programming hardware.
+Please **don't** flash this onto random Sonix keyboards just because they look similar. Different MCUs may have
+different bootloaders—or none at all—and recovery might require dedicated programming hardware.
 
 If you somehow manage to brick your keyboard, I can't magically unbrick it through GitHub issues.
 

@@ -1,7 +1,8 @@
 #include <cstddef>
 #include <cstdint>
 
-extern "C" {
+extern "C"
+{
     void* memset(void* const destination, const int value, std::size_t count) noexcept
     {
         auto* output =
@@ -10,7 +11,8 @@ extern "C" {
         const auto byte =
             static_cast<std::uint8_t>(value);
 
-        while (count != 0u) {
+        while (count != 0u)
+        {
             *output++ = byte;
             --count;
         }
@@ -26,7 +28,8 @@ extern "C" {
         const auto* input =
             static_cast<const volatile std::uint8_t*>(source);
 
-        while (count != 0u) {
+        while (count != 0u)
+        {
             *output++ = *input++;
             --count;
         }
@@ -42,16 +45,21 @@ extern "C" {
         const auto* input =
             static_cast<const volatile std::uint8_t*>(source);
 
-        if (output < input) {
-            while (count != 0u) {
+        if (output < input)
+        {
+            while (count != 0u)
+            {
                 *output++ = *input++;
                 --count;
             }
-        } else if (output > input) {
+        }
+        else if (output > input)
+        {
             output += count;
             input += count;
 
-            while (count != 0u) {
+            while (count != 0u)
+            {
                 *--output = *--input;
                 --count;
             }
@@ -68,10 +76,12 @@ extern "C" {
         const auto* second =
             static_cast<const volatile std::uint8_t*>(right);
 
-        while (count != 0u) {
-            if (*first != *second) {
+        while (count != 0u)
+        {
+            if (*first != *second)
+            {
                 return static_cast<int>(*first) -
-                    static_cast<int>(*second);
+                       static_cast<int>(*second);
             }
 
             ++first;
@@ -81,5 +91,4 @@ extern "C" {
 
         return 0;
     }
-
 }

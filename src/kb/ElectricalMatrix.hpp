@@ -1,14 +1,17 @@
-#include "usb/hid/KeyboardUsage.hpp"
 #include "MatrixDefinitions.hpp"
+#include "usb/hid/KeyboardUsage.hpp"
 
-namespace quartz::kb {
-    enum class SharedOwnership : std::uint8_t {
+namespace quartz::kb
+{
+    enum class SharedOwnership : std::uint8_t
+    {
         Matrix,
         RGBMatrix,
         ScanHandOverRequest
     };
 
-    struct ElectricalMatrix {
+    struct ElectricalMatrix
+    {
         inline static SharedOwnership Ownership = SharedOwnership::RGBMatrix;
         inline static bool KeyScanPending = false;
     };
@@ -17,10 +20,22 @@ namespace quartz::kb {
     inline static constexpr Key UsageMap[MatrixDefinitions::Rows][MatrixDefinitions::Cols] = {
         // Row 0 - currently unused
         {
-            Key::None, Key::None, Key::None, Key::None,
-            Key::None, Key::None, Key::None, Key::None,
-            Key::None, Key::None, Key::None, Key::None,
-            Key::None, Key::None, Key::None, Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
+            Key::None,
         },
 
         // Row 1
@@ -65,42 +80,42 @@ namespace quartz::kb {
 
         // Row 3
         {
-            Key::LeftShift,       // 3:0
-            Key::NonUSBackslash,  // 3:1  \ |
-            Key::Z,               // 3:2
-            Key::X,               // 3:3
-            Key::C,               // 3:4
-            Key::V,               // 3:5
-            Key::B,               // 3:6
-            Key::N,               // 3:7
-            Key::M,               // 3:8
-            Key::Comma,           // 3:9  , <
-            Key::Period,          // 3:10 . >
-            Key::Slash,           // 3:11 ; : on ABNT2
-            Key::International1,  // 3:12 / ?
-            Key::RightShift,      // 3:13
-            Key::UpArrow,         // 3:14
-            Key::None,            // 3:15
+            Key::LeftShift,      // 3:0
+            Key::NonUSBackslash, // 3:1  \ |
+            Key::Z,              // 3:2
+            Key::X,              // 3:3
+            Key::C,              // 3:4
+            Key::V,              // 3:5
+            Key::B,              // 3:6
+            Key::N,              // 3:7
+            Key::M,              // 3:8
+            Key::Comma,          // 3:9  , <
+            Key::Period,         // 3:10 . >
+            Key::Slash,          // 3:11 ; : on ABNT2
+            Key::International1, // 3:12 / ?
+            Key::RightShift,     // 3:13
+            Key::UpArrow,        // 3:14
+            Key::None,           // 3:15
         },
 
         // Row 4
         {
-            Key::CapsLock,     // 4:0
-            Key::A,            // 4:1
-            Key::S,            // 4:2
-            Key::D,            // 4:3
-            Key::F,            // 4:4
-            Key::G,            // 4:5
-            Key::H,            // 4:6
-            Key::J,            // 4:7
-            Key::K,            // 4:8
-            Key::L,            // 4:9
-            Key::Semicolon,    // 4:10 Ç
-            Key::Apostrophe,   // 4:11 ~ ^
-            Key::NonUSHash,    // 4:12 ] }
-            Key::Backspace,    // 4:13
-            Key::None,         // 4:14
-            Key::Enter,        // 4:15
+            Key::CapsLock,   // 4:0
+            Key::A,          // 4:1
+            Key::S,          // 4:2
+            Key::D,          // 4:3
+            Key::F,          // 4:4
+            Key::G,          // 4:5
+            Key::H,          // 4:6
+            Key::J,          // 4:7
+            Key::K,          // 4:8
+            Key::L,          // 4:9
+            Key::Semicolon,  // 4:10 Ç
+            Key::Apostrophe, // 4:11 ~ ^
+            Key::NonUSHash,  // 4:12 ] }
+            Key::Backspace,  // 4:13
+            Key::None,       // 4:14
+            Key::Enter,      // 4:15
         },
 
         // Row 5

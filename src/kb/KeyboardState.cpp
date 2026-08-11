@@ -1,9 +1,10 @@
 #include "KeyboardState.hpp"
+#include "ElectricalMatrix.hpp"
 #include "KeyMap.hpp"
 #include "usb/hid/KeyboardReporter.hpp"
-#include "ElectricalMatrix.hpp"
 
-namespace quartz::kb {
+namespace quartz::kb
+{
     LEDState KeyboardState::CurrentLEDState = {};
     utils::BitSet<MatrixDefinitions::Size> KeyboardState::CurrentKeyStates = {};
     utils::BitSet<MatrixDefinitions::Size> KeyboardState::LastKeyStates = {};
@@ -22,7 +23,8 @@ namespace quartz::kb {
         const auto* h2 = History[2].data.data();
         const auto* h3 = History[3].data.data();
 
-        for (std::size_t i = 0; i < MatrixBytes; ++i) {
+        for (std::size_t i = 0; i < MatrixBytes; ++i)
+        {
             const std::uint8_t pressed = h0[i] & h1[i] & h2[i] & h3[i];
             const std::uint8_t released = static_cast<std::uint8_t>(~(h0[i] | h1[i] | h2[i] | h3[i]));
             current[i] = static_cast<std::uint8_t>((current[i] | pressed) & ~released);
@@ -59,7 +61,8 @@ namespace quartz::kb {
     usb::hid::BootKeyboardReport KeyboardState::buildBootReport() noexcept
     {
         usb::hid::BootKeyboardReport report = {};
-        for (std::size_t index = 0; index < MatrixDefinitions::Size; ++index) {
+        for (std::size_t index = 0; index < MatrixDefinitions::Size; ++index)
+        {
             if (!CurrentKeyStates.test(index))
                 continue;
 
@@ -74,7 +77,8 @@ namespace quartz::kb {
     usb::hid::NKROKeyboardReport KeyboardState::buildNKROReport() noexcept
     {
         usb::hid::NKROKeyboardReport report;
-        for (std::size_t index = 0; index < MatrixDefinitions::Size; ++index) {
+        for (std::size_t index = 0; index < MatrixDefinitions::Size; ++index)
+        {
             if (!CurrentKeyStates.test(index))
                 continue;
 

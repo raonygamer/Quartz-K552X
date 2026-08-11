@@ -5,7 +5,8 @@
 #include "usb/protocol/OutTransferState.hpp"
 #include "usb/protocol/payloads/SetupPayload.hpp"
 
-namespace quartz::usb::proto {
+namespace quartz::usb::proto
+{
     enum class ControlStage : std::uint8_t
     {
         Idle,
@@ -29,11 +30,13 @@ namespace quartz::usb::proto {
         TransferComplete
     };
 
-    class ControlPipe {
+    class ControlPipe
+    {
         static InTransferState InState;
         static OutTransferState OutState;
         static StageDirection Direction;
         static ControlStage Stage;
+
     public:
         static void reset() noexcept;
         static bool isTransferring() noexcept;

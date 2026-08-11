@@ -6,7 +6,6 @@
 
 #include "usb/hid/HIDProtocol.hpp"
 
-
 namespace quartz::usb
 {
     struct DeviceState
@@ -37,6 +36,7 @@ namespace quartz::usb
     class Device
     {
         static DeviceState State;
+
     public:
         static void reset() noexcept;
         static void handleInterrupt(hal::usb::Interrupt status) noexcept;

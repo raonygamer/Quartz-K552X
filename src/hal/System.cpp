@@ -1,18 +1,20 @@
 #include "hal/System.hpp"
 #include "debug/Panic.hpp"
 #include "hal/timer/HighResolutionTimer.hpp"
-#include "kb/Matrix.hpp"
-#include "hal/usb/Interrupt.hpp"
 #include "hal/usb/Controller.hpp"
+#include "hal/usb/Interrupt.hpp"
+#include "kb/Matrix.hpp"
 #include "usb/Device.hpp"
 
-namespace quartz::hal {
+namespace quartz::hal
+{
     void System::initializeSystemTick() noexcept
     {
         SysTick->CTRL = 0; // Disable SysTick
         SysTick->LOAD = (SystemCoreClock / 1000u) - 1u;
         SysTick->VAL = 0; // Clear current value
-        SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk; // Enable SysTick with interrupt
+        SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk;
+        // Enable SysTick with interrupt
     }
 
     void System::teardownEverything() noexcept
@@ -22,7 +24,7 @@ namespace quartz::hal {
 
         SysTick->CTRL = 0u;
         SysTick->LOAD = 0u;
-        SysTick->VAL  = 0u;
+        SysTick->VAL = 0u;
         SCB->ICSR = SCB_ICSR_PENDSTCLR_Msk;
         SN_GPIO0->MODE = 0u;
         SN_GPIO1->MODE = 0u;
@@ -66,7 +68,7 @@ namespace quartz::hal {
 
 extern "C" void SysTick_Handler()
 {
-    //quartz::hal::Timer::tick();
+    // quartz::hal::Timer::tick();
 }
 
 extern "C" void USB_IRQHandler()

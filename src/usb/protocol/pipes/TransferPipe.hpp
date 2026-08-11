@@ -4,7 +4,8 @@
 #include "hal/usb/Interrupt.hpp"
 #include "usb/protocol/PipeTransferState.hpp"
 
-namespace quartz::usb::proto {
+namespace quartz::usb::proto
+{
     struct TransferEvents
     {
         std::uint8_t InComplete = 0;
@@ -21,8 +22,10 @@ namespace quartz::usb::proto {
         }
     };
 
-    class TransferPipe {
+    class TransferPipe
+    {
         static PipeTransferState State;
+
     public:
         static void reset() noexcept;
         static bool isTransferring(hal::usb::EndpointNumber num) noexcept;

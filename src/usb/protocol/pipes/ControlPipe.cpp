@@ -77,7 +77,7 @@ namespace quartz::usb::proto
         Stage = ControlStage::Setup;
         Direction = StageDirection::None;
         payloads::SetupPayload payload = {};
-        const auto bytes = std::as_writable_bytes(std::span { &payload, 1 });
+        const auto bytes = std::as_writable_bytes(std::span{ &payload, 1 });
         static_assert(sizeof(payload) == 8, "Size of SetupPayload must be exactly 8 bytes!");
         const auto& endpoint = hal::usb::Controller::getEndpoint(hal::usb::EndpointNumber::EP0);
         endpoint.readTo(bytes);

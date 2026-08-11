@@ -1,15 +1,18 @@
 #pragma once
 #include <cstdint>
 
-namespace quartz::usb::payloads {
-    enum class RequestType : std::uint8_t {
+namespace quartz::usb::payloads
+{
+    enum class RequestType : std::uint8_t
+    {
         Standard = 0,
-        Class    = 1,
-        Vendor   = 2,
+        Class = 1,
+        Vendor = 2,
         Reserved = 3,
     };
 
-    struct [[gnu::packed]] SetupPayload {
+    struct [[gnu::packed]] SetupPayload
+    {
         std::uint8_t requestType;
         std::uint8_t request;
         std::uint16_t value;

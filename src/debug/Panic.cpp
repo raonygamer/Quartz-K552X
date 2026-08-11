@@ -2,7 +2,8 @@
 #include "hal/gpio/GPIO.hpp"
 #include "hal/timer/HighResolutionTimer.hpp"
 
-namespace quartz::debug {
+namespace quartz::debug
+{
     void Panic::markNextRebootIsBootloader() noexcept
     {
         controllers.MagicNumber = Controllers::Magic;
@@ -20,7 +21,8 @@ namespace quartz::debug {
     void Panic::blinkDebuggingLeds(std::uint16_t delayMs, std::uint8_t count) noexcept
     {
         setDebuggingLedState(false);
-        for (std::uint8_t i = 0; i < count; ++i) {
+        for (std::uint8_t i = 0; i < count; ++i)
+        {
             hal::GPIO::togglePin(hal::GPIOPort::B, hal::GPIOPin::PIN14);
             hal::GPIO::togglePin(hal::GPIOPort::B, hal::GPIOPin::PIN15);
             hal::HighResolutionTimer::waitMilliseconds(delayMs);
@@ -32,10 +34,13 @@ namespace quartz::debug {
         hal::GPIO::setPinMode(hal::GPIOPort::B, hal::GPIOPin::PIN14, hal::GPIOMode::Output);
         hal::GPIO::setPinMode(hal::GPIOPort::B, hal::GPIOPin::PIN15, hal::GPIOMode::Output);
 
-        if (on) {
+        if (on)
+        {
             hal::GPIO::setPinHigh(hal::GPIOPort::B, hal::GPIOPin::PIN14);
             hal::GPIO::setPinHigh(hal::GPIOPort::B, hal::GPIOPin::PIN15);
-        } else {
+        }
+        else
+        {
             hal::GPIO::setPinLow(hal::GPIOPort::B, hal::GPIOPin::PIN14);
             hal::GPIO::setPinLow(hal::GPIOPort::B, hal::GPIOPin::PIN15);
         }

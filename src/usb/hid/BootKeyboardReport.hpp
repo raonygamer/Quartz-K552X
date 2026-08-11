@@ -2,13 +2,15 @@
 #include "KeyboardUsage.hpp"
 #include <array>
 
-namespace quartz::usb::hid {
-    struct __attribute__((packed)) BootKeyboardReport {
+namespace quartz::usb::hid
+{
+    struct __attribute__((packed)) BootKeyboardReport
+    {
         static constexpr std::size_t KeySlots = 6;
 
-        std::uint8_t Modifiers {};
-        std::uint8_t Reserved {};
-        std::array<std::uint8_t, KeySlots> Keys {};
+        std::uint8_t Modifiers{};
+        std::uint8_t Reserved{};
+        std::array<std::uint8_t, KeySlots> Keys{};
 
         constexpr void clear() noexcept
         {
@@ -36,13 +38,16 @@ namespace quartz::usb::hid {
             }
 
             // Don't insert duplicates.
-            for (const auto key : Keys) {
+            for (const auto key : Keys)
+            {
                 if (key == value)
                     return true;
             }
 
-            for (auto& key : Keys) {
-                if (key == 0) {
+            for (auto& key : Keys)
+            {
+                if (key == 0)
+                {
                     key = value;
                     return true;
                 }

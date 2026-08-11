@@ -5,7 +5,7 @@
 
 namespace quartz::hal::usb
 {
-    namespace 
+    namespace
     {
         constexpr std::uint32_t USB_VREG33 = 1u << 31;
         constexpr std::uint32_t USB_PHY = 1u << 30;
