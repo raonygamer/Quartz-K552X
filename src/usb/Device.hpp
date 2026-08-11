@@ -28,7 +28,10 @@ namespace quartz::usb
         hid::HIDProtocol Protocol = hid::HIDProtocol::Report;
         std::uint8_t IdleRate = 0;
         std::uint8_t HIDOutputReport = 0;
+        std::array<std::byte, 64> HIDFeatureBuffer = {};
         hid::ControlOutType ControlOut = hid::ControlOutType::None;
+
+        bool RebootPending = false;
     };
 
     class Device
@@ -54,6 +57,7 @@ namespace quartz::usb
         static void _handleSetHIDReport() noexcept;
         static void _handleClassRequest() noexcept;
         static void _handleVendorRequest() noexcept;
+        static bool _handleRebootCommand() noexcept;
         static void _commitPendingState() noexcept;
         static void _cancelPendingState() noexcept;
         static void _setConfiguration(std::uint8_t configuration) noexcept;

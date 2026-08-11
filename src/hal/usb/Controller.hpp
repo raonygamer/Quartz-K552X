@@ -5,10 +5,9 @@
 
 namespace quartz::hal::usb {
     class Controller {
-    public:
         using EndpointArray = std::array<Endpoint, Endpoint::MAX_ENDPOINTS>;
         static EndpointArray Endpoints;
-
+    public:
         static void initialize() noexcept;
         static void connect() noexcept;
         static void disconnect() noexcept;

@@ -28,6 +28,7 @@ namespace quartz::usb::hid {
     enum class ControlOutType : std::uint8_t
     {
         None,
-        HIDSetReport
+        HIDOutputReport,
+        HIDFeatureReport
     };
 }

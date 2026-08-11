@@ -1,5 +1,6 @@
 #include "usb/Device.hpp"
 
+#include "hal/System.hpp"
 #include "hal/timer/HighResolutionTimer.hpp"
 #include "hal/usb/Controller.hpp"
 #include "kb/KeyboardState.hpp"
@@ -133,9 +134,9 @@ namespace quartz::usb
             _handleVendorRequest();
             return;
         default:
-            _stallControl();
-            return;
+            break;
         }
+        _stallControl();
     }
 
     void Device::_handleControlEvent(const proto::ControlEvent event) noexcept
@@ -145,13 +146,16 @@ namespace quartz::usb
         case proto::ControlEvent::DataOutComplete:
             switch (State.ControlOut)
             {
-            case hid::ControlOutType::HIDSetReport:
+            case hid::ControlOutType::HIDOutputReport:
                 kb::KeyboardState::CurrentLEDState.Raw = State.HIDOutputReport;
                 kb::KeyboardState::CurrentLEDState.updateLeds();
                 State.ControlOut = hid::ControlOutType::None;
                 proto::ControlPipe::startStatusIn();
                 return;
-
+            case hid::ControlOutType::HIDFeatureReport:
+                if (_handleRebootCommand())
+                    return;
+                return;
             default:
                 _stallControl();
                 return;
@@ -159,10 +163,8 @@ namespace quartz::usb
 
         case proto::ControlEvent::TransferComplete:
             _commitPendingState();
-            return;
-
         default:
-            return;
+            break;
         }
     }
 
@@ -203,9 +205,9 @@ namespace quartz::usb
             proto::ControlPipe::startStatusIn();
             return;
         default:
-            _stallControl();
-            return;
+            break;
         }
+        _stallControl();
     }
 
     void Device::_handleGetDescriptor() noexcept
@@ -237,9 +239,9 @@ namespace quartz::usb
             sendControlResponse(std::span{ HIDKeyboard::ReportDescriptor.data(), HIDKeyboard::ReportDescriptor.size() }, length);
             return;
         default:
-            _stallControl();
-            return;
+            break;
         }
+        _stallControl();
     }
 
     void Device::_handleGetHIDReport() noexcept
@@ -262,9 +264,10 @@ namespace quartz::usb
             _sendCurrentKeyboardReportControl();
             return;
         default:
-            _stallControl();
-            return;
+            break;
         }
+
+        _stallControl();
     }
 
     void Device::_handleSetHIDReport() noexcept
@@ -272,14 +275,27 @@ namespace quartz::usb
         const auto& setup = State.Setup;
         const auto reportType = static_cast<hid::HIDReportType>(setup.value >> 8);
         const auto reportId = static_cast<std::uint8_t>(setup.value);
-        if (setup.isDeviceToHost() || reportType != hid::HIDReportType::Output || reportId != 0 || setup.length != 1)
+        if (setup.isDeviceToHost() || reportId != 0)
         {
             _stallControl();
             return;
         }
 
-        State.ControlOut = hid::ControlOutType::HIDSetReport;
-        proto::ControlPipe::startTransferOut(std::as_writable_bytes(std::span { &State.HIDOutputReport, 1 }));
+        switch (reportType)
+        {
+        case hid::HIDReportType::Output:
+            State.ControlOut = hid::ControlOutType::HIDOutputReport;
+            proto::ControlPipe::startTransferOut(std::as_writable_bytes(std::span { &State.HIDOutputReport, 1 }));
+            return;
+        case hid::HIDReportType::Feature:
+            State.ControlOut = hid::ControlOutType::HIDFeatureReport;
+            proto::ControlPipe::startTransferOut(std::as_writable_bytes(std::span { &State.HIDFeatureBuffer, setup.length }));
+            return;
+        default:
+            break;
+        }
+
+        _stallControl();
     }
 
     void Device::_handleClassRequest() noexcept
@@ -345,9 +361,9 @@ namespace quartz::usb
             _handleGetHIDReport();
             return;
         default:
-            _stallControl();
-            return;
+            break;
         }
+        _stallControl();
     }
 
     void Device::_handleVendorRequest() noexcept
@@ -355,8 +371,29 @@ namespace quartz::usb
         _stallControl();
     }
 
+    bool Device::_handleRebootCommand() noexcept
+    {
+        const auto& data = State.HIDFeatureBuffer;
+        if constexpr (data.size() != hal::System::SONIX_REBOOT_MAGIC.size())
+            return false;
+        for (std::size_t i = 0; i < hal::System::SONIX_REBOOT_MAGIC.size(); ++i)
+        {
+            if (data[i] != static_cast<std::byte>(hal::System::SONIX_REBOOT_MAGIC[i]))
+                return false;
+        }
+        State.RebootPending = true;
+        return true;
+    }
+
     void Device::_commitPendingState() noexcept
     {
+        if (State.RebootPending)
+        {
+            State.RebootPending = false;
+            debug::Panic::setNextRebootIsBootloader(true);
+            hal::System::reset();
+        }
+
         if (State.HasPendingAddress)
         {
             State.HasPendingAddress = false;

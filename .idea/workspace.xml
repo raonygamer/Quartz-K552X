@@ -30,27 +30,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="baa3ec05-c5ab-490b-ace4-169f8857b6ac" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/debug/Panic.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/debug/Panic.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/System.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/System.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/usb/Controller.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/usb/Controller.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hal/usb/Endpoint.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/usb/Endpoint.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kb/KeyboardState.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/KeyboardState.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kb/KeyboardState.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/KeyboardState.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kb/Matrix.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/Matrix.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/quartz/rpc/RPC.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/quartz/rpc/RPC.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/quartz/rpc/RPC.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/quartz/rpc/RPC.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/usb/Descriptors.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/Descriptors.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/hal/System.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/System.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/hal/usb/Controller.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/usb/Controller.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/usb/Device.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/Device.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/usb/Device.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/Device.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/usb/hid/HIDProtocol.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/hid/HIDProtocol.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/usb/hid/KeyboardReporter.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/hid/KeyboardReporter.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/usb/protocol/InTransferState.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/protocol/InTransferState.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/usb/protocol/pipes/TransferPipe.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/protocol/pipes/TransferPipe.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/usb/protocol/pipes/TransferPipe.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/protocol/pipes/TransferPipe.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -134,9 +119,9 @@
     </key>
   </component>
   <component name="RunManager">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="quartz-k552x" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="QuartzK552X" TARGET_NAME="quartz-k552x" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="QuartzK552X" RUN_TARGET_NAME="quartz-k552x">
