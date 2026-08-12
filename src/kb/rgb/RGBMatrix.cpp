@@ -1,6 +1,5 @@
 #include "RGBMatrix.hpp"
 #include "cppmcu.h"
-#include "debug/DebugEndpoint.hpp"
 #include "kb/ElectricalMatrix.hpp"
 #include <cstring>
 
@@ -14,8 +13,8 @@ namespace quartz::kb::rgb
         constexpr std::uint32_t SelectorMaskPortB = 0x03C0u; // P1.6-P1.9
 
         // CT16B1:
-        // 48 MHz / (47 + 1) / 256 = 3906.25 Hz PWM frequency.
-        constexpr std::uint32_t PWMPrescaler = 47u;
+        // 48 MHz / (10 + 1) / 256 =  17.04kHz PWM frequency.
+        constexpr std::uint32_t PWMPrescaler = 10u;
         constexpr std::uint32_t PWMPeriod = 255u;
     }
 
@@ -64,7 +63,8 @@ namespace quartz::kb::rgb
 
         configureSelectorPinsOutput();
         deselectAllColumns();
-
+        WritingBuffer = &BackBuffer;
+        ReadingBuffer = &FrontBuffer;
         clear();
         preload();
 
@@ -86,7 +86,7 @@ namespace quartz::kb::rgb
         {
             for (std::size_t column = 0; column < Columns; ++column)
             {
-                Framebuffer[row][column] = color;
+                (*WritingBuffer)[row][column] = color;
             }
         }
     }
@@ -100,8 +100,7 @@ namespace quartz::kb::rgb
     {
         if (row >= Rows || column >= Columns)
             return;
-
-        Framebuffer[row][column] = color;
+        (*WritingBuffer)[row][column] = color;
     }
 
     void RGBMatrix::setPixel(const std::uint8_t row, const std::uint8_t column, const std::uint8_t r, const std::uint8_t g, const std::uint8_t b) noexcept
@@ -109,20 +108,30 @@ namespace quartz::kb::rgb
         setPixel(row, column, utils::Color32{ .R = r, .G = g, .B = b });
     }
 
-    void RGBMatrix::setFramebuffer(const utils::Color32* colors, std::size_t count) noexcept
+    bool RGBMatrix::setFramebuffer(const SizedFlatColor32Matrix colors) noexcept
     {
-        if (colors == nullptr || count == 0u)
-            return;
+        constexpr auto REQUIRED_FRAMEBUFFER_SIZE = MatrixDefinitions::Size * sizeof(utils::Color32);
+        if (SwapPending)
+            return false;
+        if (!colors)
+            return false;
+        std::memcpy(WritingBuffer, colors, REQUIRED_FRAMEBUFFER_SIZE);
+        return true;
+    }
 
-        memcpy(Framebuffer, colors, count * sizeof(utils::Color32));
+    bool RGBMatrix::swapBuffers() noexcept
+    {
+        if (SwapPending)
+            return false;
+        SwapPending = true;
+        return true;
     }
 
     utils::Color32 RGBMatrix::getPixel(const std::uint8_t row, const std::uint8_t column) noexcept
     {
         if (row >= Rows || column >= Columns)
             return {};
-
-        return Framebuffer[row][column];
+        return (*ReadingBuffer)[row][column];
     }
 
     void RGBMatrix::disable() noexcept
@@ -140,15 +149,15 @@ namespace quartz::kb::rgb
 
     void RGBMatrix::preload() noexcept
     {
-        const std::uint8_t column = 15u - CurrentColumn;
+        const std::uint8_t column = CurrentColumn;
 
-        const utils::Color32& row0 = Framebuffer[0][column];
-        const utils::Color32& row1 = Framebuffer[1][column];
-        const utils::Color32& row2 = Framebuffer[2][column];
-        const utils::Color32& row3 = Framebuffer[3][column];
-        const utils::Color32& row4 = Framebuffer[4][column];
-        const utils::Color32& row5 = Framebuffer[5][column];
-        const utils::Color32& row6 = Framebuffer[6][column];
+        const utils::Color32& row0 = (*ReadingBuffer)[0][column];
+        const utils::Color32& row1 = (*ReadingBuffer)[1][column];
+        const utils::Color32& row2 = (*ReadingBuffer)[2][column];
+        const utils::Color32& row3 = (*ReadingBuffer)[3][column];
+        const utils::Color32& row4 = (*ReadingBuffer)[4][column];
+        const utils::Color32& row5 = (*ReadingBuffer)[5][column];
+        const utils::Color32& row6 = (*ReadingBuffer)[6][column];
 
         // Stock physical channel order is R, B, G.
 
@@ -214,7 +223,14 @@ namespace quartz::kb::rgb
         ++CurrentColumn;
 
         if (CurrentColumn >= Columns)
+        {
             CurrentColumn = 0;
+            if (SwapPending)
+            {
+                std::swap(ReadingBuffer, WritingBuffer);
+                SwapPending = false;
+            }
+        }
     }
 
     void RGBMatrix::handOver() noexcept
@@ -284,7 +300,7 @@ namespace quartz::kb::rgb
         preload();
 
         // Use whichever direction you've settled on.
-        selectColumn(15u - CurrentColumn);
+        selectColumn(CurrentColumn);
 
         // Reset TC + PC.
         SN_CT16B1->TMRCTRL = (1u << 1);

@@ -54,6 +54,10 @@ namespace quartz
     [[noreturn]]
     static void Start()
     {
+        NVIC_SetPriority(CT16B1_IRQn, 0);
+        NVIC_SetPriority(CT16B0_IRQn, 1);
+        NVIC_SetPriority(USB_IRQn, 2);
+
         kb::Matrix::initialize();
         kb::rgb::RGBMatrix::initialize();
 

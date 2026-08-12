@@ -61,8 +61,6 @@ namespace quartz::usb
         const auto pipeEvents = proto::TransferPipe::handleInterrupt(status);
         if (pipeEvents.outComplete(hal::usb::EndpointNumber::EP3))
             rpc::RPC::handleReceiveComplete();
-        if (pipeEvents.inComplete(hal::usb::EndpointNumber::EP4))
-            rpc::RPC::handleTransmitComplete();
 
         if (hasInterrupt(status, hal::usb::Interrupt::EP1Ack))
             hal::usb::Controller::clearInterruptStatus(hal::usb::Interrupt::EP1Ack);
@@ -149,8 +147,13 @@ namespace quartz::usb
                 proto::ControlPipe::startStatusIn();
                 return;
             case hid::ControlOutType::HIDFeatureReport:
-                if (_handleRebootCommand())
+                if (!_handleRebootCommand())
+                {
+                    _stallControl();
                     return;
+                }
+                State.ControlOut = hid::ControlOutType::None;
+                proto::ControlPipe::startStatusIn();
                 return;
             default:
                 _stallControl();
@@ -285,9 +288,7 @@ namespace quartz::usb
             return;
         case hid::HIDReportType::Feature:
             State.ControlOut = hid::ControlOutType::HIDFeatureReport;
-            proto::ControlPipe::startTransferOut(
-                std::as_writable_bytes(std::span{ &State.HIDFeatureBuffer, setup.length })
-            );
+            proto::ControlPipe::startTransferOut(std::span(State.HIDFeatureBuffer).first(setup.length));
             return;
         default:
             break;
@@ -369,8 +370,9 @@ namespace quartz::usb
 
     bool Device::_handleRebootCommand() noexcept
     {
+        const auto& setup = State.Setup;
         const auto& data = State.HIDFeatureBuffer;
-        if constexpr (data.size() != hal::System::SONIX_REBOOT_MAGIC.size())
+        if (setup.length != hal::System::SONIX_REBOOT_MAGIC.size())
             return false;
         for (std::size_t i = 0; i < hal::System::SONIX_REBOOT_MAGIC.size(); ++i)
         {

@@ -30,8 +30,7 @@ namespace quartz::hal::usb
         MemoryOffset(offset),
         MaxSize(maxSize)
     {
-        HARD_ASSERTC(!(direction == EndpointDirection::Both && Number == EndpointNumber::EP0),
-                     PanicReason::ENDPT_INVALID_DIREC);
+        HARD_ASSERTC(!(direction == EndpointDirection::Both && Number == EndpointNumber::EP0), PanicReason::ENDPT_INVALID_DIREC);
         HARD_ASSERTC(Number != EndpointNumber::EP0, PanicReason::ENDPT_EP0_NOT_CTRL);
         HARD_ASSERTC(Number <= EndpointNumber::EP4, PanicReason::ENDPT_INVALID_NUM);
         HARD_ASSERTC((MemoryOffset & 0x3u) == 0u, PanicReason::ENDPT_OFF_NALIGN);
@@ -119,14 +118,14 @@ namespace quartz::hal::usb
         HARD_ASSERTC(isIdle(), PanicReason::ENDPT_NOT_IDLE);
         HARD_ASSERTC(isOut(), PanicReason::ENDPT_NOUT_CFG);
         std::uint32_t value;
-        rt::Concurrency::executeInCriticalSection([this, &value]()
+        rt::Concurrency::disableInterruptsAndExecute([this, &value]()
         {
             HARD_ASSERTC((R_REG.Status & FIFO_READ_BUSY) == 0u, PanicReason::USB_RREG_BUSY);
             R_REG.Address = MemoryOffset;
             R_REG.Status = FIFO_READ_BUSY;
             while ((R_REG.Status & FIFO_READ_BUSY) != 0u);
             value = R_REG.Data;
-        });
+        }, USB_IRQn);
 
         return value;
     }
@@ -135,14 +134,14 @@ namespace quartz::hal::usb
     {
         HARD_ASSERTC(isIdle(), PanicReason::ENDPT_NOT_IDLE);
         HARD_ASSERTC(isIn(), PanicReason::ENDPT_NIN_CFG);
-        rt::Concurrency::executeInCriticalSection([this, value]()
+        rt::Concurrency::disableInterruptsAndExecute([this, value]()
         {
             HARD_ASSERTC((W_REG.Status & FIFO_WRITE_BUSY) == 0u, PanicReason::USB_WREG_BUSY);
             W_REG.Address = MemoryOffset;
             W_REG.Data = value;
             W_REG.Status = FIFO_WRITE_BUSY;
             while ((W_REG.Status & FIFO_WRITE_BUSY) != 0u);
-        });
+        }, USB_IRQn);
     }
 
     void Endpoint::readTo(const std::span<std::byte> buff) const noexcept
@@ -151,7 +150,7 @@ namespace quartz::hal::usb
         HARD_ASSERTC(isOut(), PanicReason::ENDPT_NOUT_CFG);
         HARD_ASSERTC(buff.data() != nullptr || buff.size() == 0, PanicReason::ENDPT_READ_NUL_BUF);
         HARD_ASSERTC(buff.size() <= MaxSize, PanicReason::ENDPT_READ_SZ_EXCEED);
-        rt::Concurrency::executeInCriticalSection([this, buff]()
+        rt::Concurrency::disableInterruptsAndExecute([this, buff]()
         {
             HARD_ASSERTC((R_REG.Status & FIFO_READ_BUSY) == 0u, PanicReason::USB_RREG_BUSY);
             auto* destination = reinterpret_cast<std::uint8_t*>(buff.data());
@@ -174,7 +173,7 @@ namespace quartz::hal::usb
                 const std::uint32_t word = R_REG.Data;
                 std::memcpy(destination + words * sizeof(std::uint32_t), &word, remainingBytes);
             }
-        });
+        }, USB_IRQn);
     }
 
     void Endpoint::writeFrom(const std::span<const std::byte> buff) const noexcept
@@ -183,7 +182,7 @@ namespace quartz::hal::usb
         HARD_ASSERTC(isIn(), PanicReason::ENDPT_NIN_CFG);
         HARD_ASSERTC(buff.data() != nullptr || buff.size() == 0, PanicReason::ENDPT_WRITE_NUL_BUF);
         HARD_ASSERTC(buff.size() <= MaxSize, PanicReason::ENDPT_WRITE_SZ_EXCEED);
-        rt::Concurrency::executeInCriticalSection([this, buff]()
+        rt::Concurrency::disableInterruptsAndExecute([this, buff]()
         {
             HARD_ASSERTC((W_REG.Status & FIFO_WRITE_BUSY) == 0u, PanicReason::USB_WREG_BUSY);
             const auto* source = reinterpret_cast<const std::uint8_t*>(buff.data());
@@ -208,7 +207,7 @@ namespace quartz::hal::usb
                 W_REG.Status = FIFO_WRITE_BUSY;
                 while ((W_REG.Status & FIFO_WRITE_BUSY) != 0u);
             }
-        });
+        }, USB_IRQn);
     }
 
     std::uint8_t Endpoint::getReceivedSize() const noexcept
