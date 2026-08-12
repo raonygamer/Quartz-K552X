@@ -18,8 +18,7 @@
 namespace quartz
 {
     constexpr std::uint32_t RawTickMask = 0x00FFFFFFu;
-    constexpr std::uint32_t ScanIntervalTicks = utils::Time::microsecondsToTicks(1000);
-    constexpr std::uint32_t ScanPrintIntervalTicks = utils::Time::millisecondsToTicks(1000);
+    constexpr std::uint32_t ScanIntervalTicks = utils::Time::microsecondsToTicks(2000);
 
     namespace kb
     {
@@ -67,7 +66,8 @@ namespace quartz
         std::uint32_t softwareTicks = 0;
         std::uint32_t nextScanTicks = ScanIntervalTicks;
 
-        kb::rgb::RGBMatrix::fill(0, 50, 50);
+        kb::rgb::RGBMatrix::fill(0, 255, 0);
+        kb::rgb::RGBMatrix::swapBuffers();
         kb::rgb::RGBMatrix::resume();
         for (;;)
         {

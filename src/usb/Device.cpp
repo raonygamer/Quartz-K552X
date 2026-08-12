@@ -31,7 +31,7 @@ namespace quartz::usb
             return;
         }
 
-        const auto event = proto::ControlPipe::handleInterrupt(status);
+        const auto [event, handledInterrupt] = proto::ControlPipe::handleInterrupt(status);
         if (event == proto::ControlEvent::Setup)
         {
             hal::usb::Controller::clearInterruptStatus(
@@ -46,9 +46,7 @@ namespace quartz::usb
             _cancelPendingState();
             State.Setup = proto::ControlPipe::beginSetup();
             const auto current = hal::usb::Controller::getInterruptStatus();
-            if (hal::usb::hasInterrupt(current, hal::usb::Interrupt::EP0PreSetup) || hal::usb::hasInterrupt(
-                                                                                         current, hal::usb::Interrupt::EP0Setup
-                                                                                     ))
+            if (hal::usb::hasInterrupt(current, hal::usb::Interrupt::EP0PreSetup) || hal::usb::hasInterrupt(current, hal::usb::Interrupt::EP0Setup))
             {
                 proto::ControlPipe::reset();
                 return;
@@ -66,10 +64,6 @@ namespace quartz::usb
         if (pipeEvents.inComplete(hal::usb::EndpointNumber::EP4))
             rpc::RPC::handleTransmitComplete();
 
-        if (hasInterrupt(status, hal::usb::Interrupt::EP0In))
-            hal::usb::Controller::clearInterruptStatus(hal::usb::Interrupt::EP0In);
-        if (hasInterrupt(status, hal::usb::Interrupt::EP0Out))
-            hal::usb::Controller::clearInterruptStatus(hal::usb::Interrupt::EP0Out);
         if (hasInterrupt(status, hal::usb::Interrupt::EP1Ack))
             hal::usb::Controller::clearInterruptStatus(hal::usb::Interrupt::EP1Ack);
         if (hasInterrupt(status, hal::usb::Interrupt::EP2Ack))
@@ -441,7 +435,11 @@ namespace quartz::usb
     {
         const auto report = hid::rawCurrentKeyboardReport();
         if (report.data() == nullptr || report.size() == 0)
+        {
+            _stallControl();
             return;
+        }
+
         sendControlResponse(std::span(reinterpret_cast<const uint8_t*>(report.data()), report.size()), State.Setup.length);
     }
 

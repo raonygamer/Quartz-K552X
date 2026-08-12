@@ -233,7 +233,7 @@ namespace quartz::usb
                 HIDKeyboard::MaxPacketSize
             ),
             0,
-            1, // poll every 1 ms
+            2, // poll every 1 ms
 
             // ---------------------------------------------------------
             // Interface 1: Quartz RPC

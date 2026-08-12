@@ -19,8 +19,9 @@ namespace quartz::hal
 
     void System::teardownEverything() noexcept
     {
-        quartz::usb::Device::reset();
+        usb::Controller::disconnect();
         usb::Controller::reset();
+        quartz::usb::Device::reset();
 
         SysTick->CTRL = 0u;
         SysTick->LOAD = 0u;

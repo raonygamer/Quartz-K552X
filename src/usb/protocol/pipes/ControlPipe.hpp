@@ -45,7 +45,7 @@ namespace quartz::usb::proto
         static void startStatusIn() noexcept;
         static void startStatusOut() noexcept;
         static payloads::SetupPayload beginSetup() noexcept;
-        static ControlEvent handleInterrupt(hal::usb::Interrupt status) noexcept;
+        static std::pair<ControlEvent, hal::usb::Interrupt> handleInterrupt(hal::usb::Interrupt status) noexcept;
 
     private:
         static void _transmitNextImmediate() noexcept;

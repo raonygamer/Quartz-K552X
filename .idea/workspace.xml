@@ -30,8 +30,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="baa3ec05-c5ab-490b-ace4-169f8857b6ac" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/hal/System.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/System.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kb/KeyboardState.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/KeyboardState.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kb/Matrix.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/Matrix.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/rt/Concurrency.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/rt/Concurrency.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/usb/Descriptors.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/Descriptors.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/usb/Device.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/Device.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/usb/protocol/pipes/ControlPipe.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/protocol/pipes/ControlPipe.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/usb/protocol/pipes/ControlPipe.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/usb/protocol/pipes/ControlPipe.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -93,49 +101,61 @@
     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/mnt/work/GitHub/Quartz-Client&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;shared-matrix-experiment&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/mnt/work/GitHub/Quartz-K552X/src/quartz/rpc/handlers&quot;,
     &quot;node.js.detected.package.jshint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.jshint&quot;: &quot;&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
     &quot;org.rust.first.attach.projects&quot;: &quot;true&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;CppIncludesOrderOptionsId&quot;
   }
+}&lt;/component&gt;
+  &lt;component name=&quot;RecentsManager&quot;&gt;
+    &lt;key name=&quot;CopyFile.RECENT_KEYS&quot;&gt;
+      &lt;recent name=&quot;/mnt/work/GitHub/Quartz-K552X/protocol&quot; /&gt;
+    &lt;/key&gt;
+    &lt;key name=&quot;MoveFile.RECENT_KEYS&quot;&gt;
+      &lt;recent name=&quot;/mnt/work/GitHub/Quartz-K552X/include/mcu&quot; /&gt;
+      &lt;recent name=&quot;/mnt/work/GitHub/Quartz-K552X/src/usb/protocol/packets&quot; /&gt;
+      &lt;recent name=&quot;/mnt/work/GitHub/Quartz-K552X/src/usb&quot; /&gt;
+      &lt;recent name=&quot;/mnt/work/GitHub/Quartz-K552X/include/cppmcu&quot; /&gt;
+      &lt;recent name=&quot;/mnt/work/GitHub/Quartz-K552X/include&quot; /&gt;
+    &lt;/key&gt;
+  &lt;/component&gt;
+  &lt;component name=&quot;RunManager&quot;&gt;
+    &lt;configuration name=&quot;quartz-k552x&quot; type=&quot;CMakeRunConfiguration&quot; factoryName=&quot;Application&quot; REDIRECT_INPUT=&quot;false&quot; ELEVATE=&quot;false&quot; USE_EXTERNAL_CONSOLE=&quot;false&quot; EMULATE_TERMINAL=&quot;false&quot; PASS_PARENT_ENVS_2=&quot;true&quot; PROJECT_NAME=&quot;QuartzK552X&quot; TARGET_NAME=&quot;quartz-k552x&quot; CONFIG_NAME=&quot;Debug&quot; RUN_TARGET_PROJECT_NAME=&quot;QuartzK552X&quot; RUN_TARGET_NAME=&quot;quartz-k552x&quot;&gt;
+      &lt;method v=&quot;2&quot;&gt;
+        &lt;option name=&quot;com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask&quot; enabled=&quot;true&quot; /&gt;
+      &lt;/method&gt;
+    &lt;/configuration&gt;
+  &lt;/component&gt;
+  &lt;component name=&quot;RustProjectSettings&quot;&gt;
+    &lt;option name=&quot;toolchainHomeDirectory&quot; value=&quot;/usr/bin&quot; /&gt;
+  &lt;/component&gt;
+  &lt;component name=&quot;SelectedDebugProfileService&quot;&gt;&lt;![CDATA[{
+  &quot;profileIdByStamp&quot;: [
+    {
+      &quot;first&quot;: {
+        &quot;##RUN_CONFIGURATION##&quot;: &quot;CMake Application.quartz-k552x&quot;,
+        &quot;cmake&quot;: &quot;CMakeBuildProfile:Debug&quot;
+      },
+      &quot;second&quot;: &quot;c6eb0cf3-08bc-49e0-beaa-fc6519c628d1&quot;
+    }
+  ],
+  &quot;modificationCount&quot;: 4
 }</component>
-  <component name="RecentsManager">
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/protocol" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/include/mcu" />
-      <recent name="$PROJECT_DIR$/src/usb/protocol/packets" />
-      <recent name="$PROJECT_DIR$/src/usb" />
-      <recent name="$PROJECT_DIR$/include/cppmcu" />
-      <recent name="$PROJECT_DIR$/include" />
-    </key>
-  </component>
   <component name="RunManager">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="quartz-k552x" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="QuartzK552X" TARGET_NAME="quartz-k552x" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="QuartzK552X" RUN_TARGET_NAME="quartz-k552x">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
   </component>
-  <component name="RustProjectSettings">
-    <option name="toolchainHomeDirectory" value="/usr/bin" />
-  </component>
-  <component name="SelectedDebugProfileService"><![CDATA[{
-  "profileIdByStamp": [
-    {
-      "first": {
-        "##RUN_CONFIGURATION##": "CMake Application.quartz-k552x",
-        "cmake": "CMakeBuildProfile:Debug"
-      },
-      "second": "c6eb0cf3-08bc-49e0-beaa-fc6519c628d1"
-    }
-  ],
-  "modificationCount": 4
-}]]></component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="baa3ec05-c5ab-490b-ace4-169f8857b6ac" name="Changes" comment="" />

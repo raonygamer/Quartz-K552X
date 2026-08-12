@@ -84,21 +84,26 @@ namespace quartz::usb::proto
         return payload;
     }
 
-    ControlEvent ControlPipe::handleInterrupt(const hal::usb::Interrupt status) noexcept
+    std::pair<ControlEvent, hal::usb::Interrupt> ControlPipe::handleInterrupt(const hal::usb::Interrupt status) noexcept
     {
-        if (hasInterrupt(status, hal::usb::Interrupt::EP0Setup))
-            return ControlEvent::Setup;
+        using hal::usb::Interrupt;
+        if (hasInterrupt(status, Interrupt::EP0Setup))
+            return { ControlEvent::Setup, hal::usb::Interrupt::EP0Setup };
 
-        if (hasInterrupt(status, hal::usb::Interrupt::EP0Out))
-            return _handleEndpointOut();
-
-        if (hasInterrupt(status, hal::usb::Interrupt::EP0In))
+        if (hasInterrupt(status, Interrupt::EP0Out))
         {
-            _handleEndpointIn();
-            return Stage == ControlStage::Idle ? ControlEvent::TransferComplete : ControlEvent::None;
+            hal::usb::Controller::clearInterruptStatus(Interrupt::EP0Out);
+            return { _handleEndpointOut(), Interrupt::EP0Out };
         }
 
-        return ControlEvent::None;
+        if (hasInterrupt(status, Interrupt::EP0In))
+        {
+            hal::usb::Controller::clearInterruptStatus(Interrupt::EP0In);
+            _handleEndpointIn();
+            return { Stage == ControlStage::Idle ? ControlEvent::TransferComplete : ControlEvent::None, Interrupt::EP0In };
+        }
+
+        return { ControlEvent::None, Interrupt::None };
     }
 
     void ControlPipe::_transmitNextImmediate() noexcept

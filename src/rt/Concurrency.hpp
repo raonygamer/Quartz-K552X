@@ -24,5 +24,14 @@ namespace quartz::rt
             if ((mask & 0x1u) == 0u)
                 exitCriticalSection();
         }
+
+        static void disableInterruptsAndExecute(const auto& func, const IRQn_Type type) noexcept
+        {
+            const bool enabled = NVIC_GetEnableIRQ(USB_IRQn) != 0;
+            NVIC_DisableIRQ(type);
+            func();
+            if (enabled)
+                NVIC_EnableIRQ(type);
+        }
     };
 }
