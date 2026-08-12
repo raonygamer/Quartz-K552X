@@ -1,82 +1,28 @@
 #include "kb/Matrix.hpp"
+#include "cppmcu.h"
 #include "hal/timer/HighResolutionTimer.hpp"
-#include "kb/Keyboard.hpp"
 #include "kb/KeyboardState.hpp"
 #include "quartz/Profiling.hpp"
 #include "rgb/RGBMatrix.hpp"
+#include "rt/Concurrency.hpp"
 #include "utils/Time.hpp"
-
-extern "C"
-{
-#include "SN32F240B.h"
-}
 
 namespace quartz::kb
 {
-    namespace
+    std::size_t Matrix::getKeyIndex(const uint8_t row, const uint8_t col) noexcept
     {
-        // GPIO mapping:
-        // hal A = GPIO0
-        // hal B = GPIO1
-        // hal C = GPIO2
-        // hal D = GPIO3
-
-        constexpr std::uint32_t RowMaskC = 0xA000u; // C13, C15
-        constexpr std::uint32_t RowMaskD = 0x0F80u; // D7-D11
-
-        constexpr std::uint32_t ColMaskC = 0x1FFBu; // C0,C1,C3-C12
-        constexpr std::uint32_t ColMaskB = 0x03C0u; // B6-B9
-
-        //
-        // Each GPIO CFG field is two bits:
-        //
-        //   00 = pull-up
-        //   10 = inactive/no pull, Schmitt enabled
-        //
-        // Convert a 16-bit pin mask into the corresponding 32-bit
-        // collection of two-bit CFG fields.
-        //
-        constexpr std::uint32_t expandCFGMask(const std::uint32_t pinMask) noexcept
-        {
-            std::uint32_t result = 0;
-
-            for (std::uint32_t pin = 0; pin < 16; ++pin)
-            {
-                if ((pinMask & (1u << pin)) != 0)
-                {
-                    result |= 0x3u << (pin * 2u);
-                }
-            }
-
-            return result;
-        }
-
-        constexpr std::uint32_t makeCFGValue(const std::uint32_t pinMask, const std::uint32_t value) noexcept
-        {
-            std::uint32_t result = 0;
-
-            for (std::uint32_t pin = 0; pin < 16; ++pin)
-            {
-                if ((pinMask & (1u << pin)) != 0)
-                {
-                    result |= (value & 0x3u) << (pin * 2u);
-                }
-            }
-
-            return result;
-        }
-
-        constexpr std::uint32_t ColCFGMaskC = expandCFGMask(ColMaskC);
-        constexpr std::uint32_t ColCFGMaskB = expandCFGMask(ColMaskB);
-        constexpr std::uint32_t ColCFGInactiveC = makeCFGValue(ColMaskC, 0b10u);
-        constexpr std::uint32_t ColCFGInactiveB = makeCFGValue(ColMaskB, 0b10u);
+        return static_cast<std::size_t>(row) * MatrixDefinitions::Cols + col;
     }
 
-    void Matrix::initialize() noexcept
+    utils::MatrixPosition Matrix::getKeyPosition(const std::size_t index) noexcept
     {
+        return utils::MatrixPosition{
+            static_cast<std::uint8_t>(index / MatrixDefinitions::Cols),
+            static_cast<std::uint8_t>(index % MatrixDefinitions::Cols)
+        };
     }
 
-    void Matrix::setRowPinsMode(const hal::GPIOMode mode) noexcept
+    void Matrix::_setRowPinsMode(const hal::GPIOMode mode) noexcept
     {
         if (mode == hal::GPIOMode::Output)
         {
@@ -90,7 +36,7 @@ namespace quartz::kb
         }
     }
 
-    void Matrix::setRowPinValue(const std::uint8_t row, const bool high) noexcept
+    void Matrix::_setRowPinValue(const std::uint8_t row, const bool high) noexcept
     {
         if (row >= MatrixDefinitions::Rows)
         {
@@ -99,7 +45,6 @@ namespace quartz::kb
 
         const GPIOPinSet& pinSet = RowPins[row];
         const std::uint32_t mask = pinSet.getMask();
-
         if (pinSet.Port == hal::GPIOPort::C)
         {
             if (high)
@@ -110,11 +55,9 @@ namespace quartz::kb
             {
                 SN_GPIO2->BCLR = mask;
             }
-
             return;
         }
 
-        // Rows only live on C and D.
         if (high)
         {
             SN_GPIO3->BSET = mask;
@@ -125,7 +68,7 @@ namespace quartz::kb
         }
     }
 
-    void Matrix::setAllRowPinsValue(const bool high) noexcept
+    void Matrix::_setAllRowPinsValue(const bool high) noexcept
     {
         if (high)
         {
@@ -139,7 +82,7 @@ namespace quartz::kb
         }
     }
 
-    void Matrix::setColPinsMode(const hal::GPIOMode mode, const hal::GPIOPull pull) noexcept
+    void Matrix::_setColPinsMode(const hal::GPIOMode mode, const hal::GPIOPull pull) noexcept
     {
         if (mode == hal::GPIOMode::Output)
         {
@@ -152,12 +95,6 @@ namespace quartz::kb
             SN_GPIO1->MODE &= ~ColMaskB;
         }
 
-        //
-        // CFG is TWO bits per GPIO.
-        //
-        // PullUp = 00
-        // None   = 10 (inactive, Schmitt enabled)
-        //
         if (pull == hal::GPIOPull::PullUp)
         {
             SN_GPIO2->CFG &= ~ColCFGMaskC;
@@ -175,28 +112,11 @@ namespace quartz::kb
         }
     }
 
-    std::uint16_t Matrix::readColPins() noexcept
+    std::uint16_t Matrix::_readColPins() noexcept
     {
-        //
-        // Matrix inputs are active-low.
-        //
+        // Columns are Input and Pulled-UP
         const std::uint32_t portC = ~SN_GPIO2->DATA & ColMaskC;
         const std::uint32_t portB = ~SN_GPIO1->DATA & ColMaskB;
-
-        //
-        // Physical:
-        //
-        // C0  -> bit 0
-        // C1  -> bit 1
-        // C3  -> bit 2
-        // ...
-        // C12 -> bit 11
-        //
-        // B6  -> bit 12
-        // B7  -> bit 13
-        // B8  -> bit 14
-        // B9  -> bit 15
-        //
         return static_cast<std::uint16_t>(
             (portC & 0x0003u) |
             ((portC >> 1u) & 0x0FFCu) |
@@ -204,56 +124,54 @@ namespace quartz::kb
         );
     }
 
-    void Matrix::begin() noexcept
+    void Matrix::_begin() noexcept
     {
         const auto start = hal::HighResolutionTimer::rawTicks();
-        setRowPinsMode(hal::GPIOMode::Output);
-        setColPinsMode(hal::GPIOMode::Input, hal::GPIOPull::PullUp);
-        setAllRowPinsValue(true);
-        profiling::BeginScanTicks = static_cast<std::uint32_t>(
+        _setRowPinsMode(hal::GPIOMode::Output);
+        _setColPinsMode(hal::GPIOMode::Input, hal::GPIOPull::PullUp);
+        _setAllRowPinsValue(true);
+        profiling::BeginScanTicks = (
             hal::HighResolutionTimer::rawTicks() -
             start
         );
     }
 
-    static void waitForSignal(const std::uint64_t waitingValue) noexcept
-    {
-        std::uint32_t SettleTicks = utils::Time::microsecondsToTicks(waitingValue);
-        const std::uint32_t settleStart = hal::HighResolutionTimer::rawTicks();
-        while ((hal::HighResolutionTimer::rawTicks() - settleStart & 0x00FFFFFFu) < SettleTicks)
-            __NOP();
-    }
-
     void Matrix::scan() noexcept
     {
         // Row 0 is ignored for some reason, so we start scanning from row 1.
+        constexpr std::uint64_t SettleTicks = utils::Time::microsecondsToTicks(70);
         constexpr std::uint8_t StartingRow = 1;
-        begin();
         utils::BitSet<MatrixDefinitions::Size> newKeyStates;
-        const auto start = hal::HighResolutionTimer::rawTicks();
-        for (std::uint8_t row = StartingRow; row < MatrixDefinitions::Rows; ++row)
+        // Disable USB interrupts to reduce jitter on scanning
+        rt::Concurrency::disableInterruptsAndExecute([&newKeyStates]
         {
-            setRowPinValue(row, false);
-            waitForSignal(25);
-            newKeyStates.setUnsafeU16(
-                readColPins(),
-                static_cast<std::size_t>(row) * 2U
-            );
-            setRowPinValue(row, true);
-        }
-        profiling::ScanTicks = hal::HighResolutionTimer::rawTicks() - start;
-        end();
-        rgb::RGBMatrix::acquire();
-        const auto updateStart = hal::HighResolutionTimer::rawTicks();
-        KeyboardState::updateKeyStates(newKeyStates);
-        profiling::StateUpdateTicks = hal::HighResolutionTimer::rawTicks() - updateStart;
+            _begin();
+            const auto start = hal::HighResolutionTimer::rawTicks();
+            for (std::uint8_t row = StartingRow; row < MatrixDefinitions::Rows; ++row)
+            {
+                _setRowPinValue(row, false);
+                const auto settleStart = hal::HighResolutionTimer::rawTicks();
+                while ((hal::HighResolutionTimer::rawTicks() - settleStart & 0x00FFFFFFu) < SettleTicks) __NOP();
+                newKeyStates.setUnsafeU16(
+                    _readColPins(),
+                    static_cast<std::size_t>(row) * 2U
+                );
+                _setRowPinValue(row, true);
+            }
+            profiling::ScanTicks = hal::HighResolutionTimer::rawTicks() - start;
+            _end();
+            rgb::RGBMatrix::acquire();
+            const auto updateStart = hal::HighResolutionTimer::rawTicks();
+            KeyboardState::updateKeyStates(newKeyStates);
+            profiling::StateUpdateTicks = hal::HighResolutionTimer::rawTicks() - updateStart;
+        }, USB_IRQn);
     }
 
-    void Matrix::end() noexcept
+    void Matrix::_end() noexcept
     {
         const auto start = hal::HighResolutionTimer::rawTicks();
-        setColPinsMode(hal::GPIOMode::Input, hal::GPIOPull::None);
-        setRowPinsMode(hal::GPIOMode::Input);
+        _setColPinsMode(hal::GPIOMode::Input, hal::GPIOPull::None);
+        _setRowPinsMode(hal::GPIOMode::Input);
         profiling::EndScanTicks = hal::HighResolutionTimer::rawTicks() - start;
     }
 }

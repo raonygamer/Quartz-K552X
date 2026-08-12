@@ -29,7 +29,37 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="baa3ec05-c5ab-490b-ace4-169f8857b6ac" name="Changes" comment="" />
+    <list default="true" id="baa3ec05-c5ab-490b-ace4-169f8857b6ac" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/protocol/include/quartz/rpc/payloads/RowTimingProbePayload.hpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/debug/Profiler.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/debug/Profiler.hpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/kb/Keyboard.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/kb/MatrixTimingProbe.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/kb/MatrixTimingProbe.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/protocol" beforeDir="false" afterPath="$PROJECT_DIR$/protocol" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/protocol/include/quartz/rpc/PacketType.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/protocol/include/quartz/rpc/PacketType.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/protocol/include/quartz/rpc/payloads/PerformancePayload.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/protocol/include/quartz/rpc/payloads/PerformancePayload.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/protocol/include/quartz/utils/Color32.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/protocol/include/quartz/utils/Color32.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/debug/DebugEndpoint.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/debug/DebugEndpoint.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/hal/System.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/System.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/hal/System.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hal/System.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kb/ElectricalMatrix.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/ElectricalMatrix.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kb/KeyMap.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/KeyMap.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kb/Keyboard.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/Keyboard.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kb/KeyboardState.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/KeyboardState.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kb/Matrix.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/Matrix.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kb/Matrix.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/Matrix.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kb/rgb/RGBMatrix.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/rgb/RGBMatrix.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kb/rgb/RGBMatrix.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/rgb/RGBMatrix.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/quartz/Profiling.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/quartz/Profiling.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/quartz/rpc/senders/PerformanceResponsePacketSender.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/quartz/rpc/senders/PerformanceResponsePacketSender.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/rt/Concurrency.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/rt/Concurrency.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/BitSet.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/BitSet.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/Time.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/Time.hpp" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -69,6 +99,9 @@
   &quot;associatedIndex&quot;: 4
 }</component>
   <component name="ProjectId" id="3HhN3NQH2Z1mnnek8HtdWPYNW5v" />
+  <component name="ProjectStatusUIService"><![CDATA[{
+  "uiKindId": "Widget"
+}]]></component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -91,7 +124,7 @@
     "cidr.known.project.marker": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "master",
-    "last_opened_file_path": "/mnt/work/GitHub/Quartz-K552X/src/quartz/rpc/handlers",
+    "last_opened_file_path": "/mnt/work/GitHub/Quartz-K552X/src/debug",
     "node.js.detected.package.jshint": "true",
     "node.js.selected.package.jshint": "",
     "nodejs_package_manager_path": "npm",
@@ -101,6 +134,8 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/debug" />
+      <recent name="$PROJECT_DIR$/src/kb" />
       <recent name="$PROJECT_DIR$/src/quartz/rpc/handlers" />
       <recent name="$PROJECT_DIR$/src/quartz/rpc/senders" />
       <recent name="$PROJECT_DIR$/protocol" />
@@ -114,9 +149,9 @@
     </key>
   </component>
   <component name="RunManager">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="quartz-k552x" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="QuartzK552X" TARGET_NAME="quartz-k552x" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="QuartzK552X" RUN_TARGET_NAME="quartz-k552x">
@@ -125,6 +160,18 @@
       </method>
     </configuration>
   </component>
+  <component name="SelectedDebugProfileService"><![CDATA[{
+  "profileIdByStamp": [
+    {
+      "first": {
+        "##RUN_CONFIGURATION##": "CMake Application.quartz-k552x",
+        "cmake": "CMakeBuildProfile:Debug"
+      },
+      "second": "c6eb0cf3-08bc-49e0-beaa-fc6519c628d1"
+    }
+  ],
+  "modificationCount": 4
+}]]></component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="baa3ec05-c5ab-490b-ace4-169f8857b6ac" name="Changes" comment="" />

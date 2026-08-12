@@ -1,4 +1,5 @@
 #pragma once
+#include "kb/MatrixDefinitions.hpp"
 #include "usb/hid/KeyboardUsage.hpp"
 #include "utils/MatrixPosition.hpp"
 #include <cstddef>
@@ -47,9 +48,6 @@ namespace quartz::kb
 
     struct KeyMap
     {
-        static constexpr std::size_t Rows = 7;
-        static constexpr std::size_t Cols = 16;
-
         using K = usb::hid::KeyboardUsage;
 
         inline static constexpr auto UsageToMatrixPosition = []
@@ -175,7 +173,7 @@ namespace quartz::kb
             return index < UsageToMatrixPosition.size() ? UsageToMatrixPosition[index] : utils::MatrixPosition{ -1, -1 };
         }
 
-        inline static constexpr KeyAction Actions[Rows][Cols] = {
+        inline static constexpr KeyAction Actions[MatrixDefinitions::Rows][MatrixDefinitions::Cols] = {
             // Row 0
             {
                 KeyAction::none(),

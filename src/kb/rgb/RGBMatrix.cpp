@@ -1,76 +1,35 @@
 #include "RGBMatrix.hpp"
 #include "cppmcu.h"
+#include "hal/timer/HighResolutionTimer.hpp"
 #include "kb/ElectricalMatrix.hpp"
+#include "kb/Matrix.hpp"
+#include "quartz/Profiling.hpp"
+
 #include <cstring>
 
 namespace quartz::kb::rgb
 {
-    namespace
-    {
-        constexpr std::uint32_t PWMOutputMask = 0x003F7FFFu;
-
-        constexpr std::uint32_t SelectorMaskPortC = 0x1FFBu; // P2.0, P2.1, P2.3-P2.12
-        constexpr std::uint32_t SelectorMaskPortB = 0x03C0u; // P1.6-P1.9
-
-        // CT16B1:
-        // 48 MHz / (10 + 1) / 256 =  17.04kHz PWM frequency.
-        constexpr std::uint32_t PWMPrescaler = 10u;
-        constexpr std::uint32_t PWMPeriod = 255u;
-    }
-
     void RGBMatrix::initialize() noexcept
     {
-        // CT16B1 clock.
-        SN_SYS1->AHBCLKEN |= (1u << 7);
-
-        // Keep outputs electrically blank while configuring everything.
+        SN_SYS1->AHBCLKEN |= 1u << 7;
         SN_CT16B1->PWMIOENB = 0u;
         SN_CT16B1->TMRCTRL = 0u;
-
         SN_CT16B1->PRE = PWMPrescaler;
-
-        // 8-bit PWM period.
         SN_CT16B1->MR24 = PWMPeriod;
-
-        // Mode 2:
-        // TC < MRn => HIGH
-        // TC >= MRn => LOW
-        //
-        // Therefore the framebuffer byte can map directly to MRn:
-        //   0   = off
-        //   255 = essentially full duty.
         SN_CT16B1->PWMCTRL = 0x55555555u;
         SN_CT16B1->PWMCTRL2 = 0x55555555u;
-
-        // Enable only the 21 physically-used PWM channels:
-        // PWM0..14 and PWM16..21.
         SN_CT16B1->PWMENB = PWMOutputMask;
-
         SN_CT16B1->MCTRL = 0u;
         SN_CT16B1->MCTRL2 = 0u;
-
-        // MR24IE | MR24STOP.
-        //
-        // Run exactly one PWM ramp, stop at MR24 and interrupt.
-        // The ISR will move to the next RGB column and restart it.
         SN_CT16B1->MCTRL3 = (1u << 12) | (1u << 14);
-
-        // Reset TC + PC.
-        SN_CT16B1->TMRCTRL = (1u << 1);
-        while (SN_CT16B1->TMRCTRL & (1u << 1))
-        {
-        }
-
-        configureSelectorPinsOutput();
-        deselectAllColumns();
+        SN_CT16B1->TMRCTRL = 1u << 1;
+        while (SN_CT16B1->TMRCTRL & (1u << 1)) __NOP();
+        _configureSelectorPinsOutput();
+        _deselectAllColumns();
         WritingBuffer = &BackBuffer;
         ReadingBuffer = &FrontBuffer;
         clear();
         preload();
-
-        // Leave RGB disabled. Whoever owns the matrix scheduler decides
-        // when the first visible RGB phase begins.
-
         NVIC_ClearPendingIRQ(CT16B1_IRQn);
         NVIC_EnableIRQ(CT16B1_IRQn);
     }
@@ -82,9 +41,9 @@ namespace quartz::kb::rgb
 
     void RGBMatrix::fill(const utils::Color32 color) noexcept
     {
-        for (std::size_t row = 0; row < Rows; ++row)
+        for (std::size_t row = 0; row < MatrixDefinitions::Rows; ++row)
         {
-            for (std::size_t column = 0; column < Columns; ++column)
+            for (std::size_t column = 0; column < MatrixDefinitions::Cols; ++column)
             {
                 (*WritingBuffer)[row][column] = color;
             }
@@ -98,7 +57,7 @@ namespace quartz::kb::rgb
 
     void RGBMatrix::setPixel(const std::uint8_t row, const std::uint8_t column, const utils::Color32 color) noexcept
     {
-        if (row >= Rows || column >= Columns)
+        if (row >= MatrixDefinitions::Rows || column >= MatrixDefinitions::Cols)
             return;
         (*WritingBuffer)[row][column] = color;
     }
@@ -129,28 +88,14 @@ namespace quartz::kb::rgb
 
     utils::Color32 RGBMatrix::getPixel(const std::uint8_t row, const std::uint8_t column) noexcept
     {
-        if (row >= Rows || column >= Columns)
+        if (row >= MatrixDefinitions::Rows || column >= MatrixDefinitions::Cols)
             return {};
         return (*ReadingBuffer)[row][column];
-    }
-
-    void RGBMatrix::disable() noexcept
-    {
-        // First electrically disconnect the PWM outputs.
-        SN_CT16B1->PWMIOENB = 0u;
-
-        // Stop the PWM counter while the matrix owns the shared pins.
-        SN_CT16B1->TMRCTRL = 0u;
-
-        // Ensure every RGB selector is inactive before Matrix changes
-        // their GPIO configuration.
-        deselectAllColumns();
     }
 
     void RGBMatrix::preload() noexcept
     {
         const std::uint8_t column = CurrentColumn;
-
         const utils::Color32& row0 = (*ReadingBuffer)[0][column];
         const utils::Color32& row1 = (*ReadingBuffer)[1][column];
         const utils::Color32& row2 = (*ReadingBuffer)[2][column];
@@ -159,70 +104,34 @@ namespace quartz::kb::rgb
         const utils::Color32& row5 = (*ReadingBuffer)[5][column];
         const utils::Color32& row6 = (*ReadingBuffer)[6][column];
 
-        // Stock physical channel order is R, B, G.
-
+        // Physical channel order is R, B, G.
         SN_CT16B1->MR0 = row0.R;
         SN_CT16B1->MR1 = row0.B;
         SN_CT16B1->MR2 = row0.G;
-
         SN_CT16B1->MR3 = row1.R;
         SN_CT16B1->MR4 = row1.B;
         SN_CT16B1->MR5 = row1.G;
-
         SN_CT16B1->MR6 = row2.R;
         SN_CT16B1->MR7 = row2.B;
         SN_CT16B1->MR8 = row2.G;
-
         SN_CT16B1->MR9 = row3.R;
         SN_CT16B1->MR10 = row3.B;
         SN_CT16B1->MR11 = row3.G;
-
         SN_CT16B1->MR12 = row4.R;
         SN_CT16B1->MR13 = row4.B;
         SN_CT16B1->MR14 = row4.G;
-
-        // MR15 is not physically used.
-
         SN_CT16B1->MR16 = row5.R;
         SN_CT16B1->MR17 = row5.B;
         SN_CT16B1->MR18 = row5.G;
-
         SN_CT16B1->MR19 = row6.R;
         SN_CT16B1->MR20 = row6.B;
         SN_CT16B1->MR21 = row6.G;
     }
 
-    void RGBMatrix::enable() noexcept
-    {
-        // Matrix::end() may have left these as inputs.
-        configureSelectorPinsOutput();
-
-        // Start from a known electrically-off selector state.
-        deselectAllColumns();
-
-        // Select exactly one RGB column.
-        // Reverse only
-        selectColumn(CurrentColumn);
-
-        // Restart each RGB slot from TC=0 so brightness doesn't depend on
-        // whatever phase the timer happened to be at previously.
-        SN_CT16B1->TMRCTRL = (1u << 1);
-        while (SN_CT16B1->TMRCTRL & (1u << 1))
-        {
-        }
-
-        SN_CT16B1->TMRCTRL = 1u;
-
-        // Only expose PWM after the correct column is selected and the
-        // timer is running from the beginning of a PWM cycle.
-        SN_CT16B1->PWMIOENB = PWMOutputMask;
-    }
-
     void RGBMatrix::advance() noexcept
     {
         ++CurrentColumn;
-
-        if (CurrentColumn >= Columns)
+        if (CurrentColumn >= MatrixDefinitions::Cols)
         {
             CurrentColumn = 0;
             if (SwapPending)
@@ -231,6 +140,11 @@ namespace quartz::kb::rgb
                 SwapPending = false;
             }
         }
+    }
+
+    std::uint8_t RGBMatrix::currentColumn() noexcept
+    {
+        return CurrentColumn;
     }
 
     void RGBMatrix::handOver() noexcept
@@ -248,116 +162,76 @@ namespace quartz::kb::rgb
     {
         if (ElectricalMatrix::Ownership != SharedOwnership::Matrix)
             return;
-
+        _configureSelectorPinsOutput();
+        _deselectAllColumns();
+        SN_CT16B1->IC = 1u << 24;
         ElectricalMatrix::Ownership = SharedOwnership::RGBMatrix;
-        startCurrentColumn();
+        _startCurrentColumn();
     }
 
-    void RGBMatrix::configureSelectorPinsOutput() noexcept
+    void RGBMatrix::_configureSelectorPinsOutput() noexcept
     {
         SN_GPIO2->MODE |= SelectorMaskPortC;
         SN_GPIO1->MODE |= SelectorMaskPortB;
     }
 
-    void RGBMatrix::deselectAllColumns() noexcept
+    void RGBMatrix::_deselectAllColumns() noexcept
     {
         // Selectors are active-low, so HIGH means off.
         SN_GPIO2->BSET = SelectorMaskPortC;
         SN_GPIO1->BSET = SelectorMaskPortB;
     }
 
-    void RGBMatrix::selectColumn(const std::uint8_t column) noexcept
+    void RGBMatrix::_selectColumn(const std::uint8_t column) noexcept
     {
+        // Columns: C0-C1, C3-C12, B6-B9.
+        // Black magic
         if (column < 2u)
         {
-            // col0 -> P2.0
-            // col1 -> P2.1
-            SN_GPIO2->BCLR = (1u << column);
+            SN_GPIO2->BCLR = 1u << column;
             return;
         }
 
         if (column < 12u)
         {
-            // col2  -> P2.3
-            // ...
-            // col11 -> P2.12
-            SN_GPIO2->BCLR = (1u << (column + 1u));
+            SN_GPIO2->BCLR = 1u << (column + 1u);
             return;
         }
 
-        // col12 -> P1.6
-        // col13 -> P1.7
-        // col14 -> P1.8
-        // col15 -> P1.9
-        SN_GPIO1->BCLR = (1u << (column - 6u));
+        SN_GPIO1->BCLR = 1u << (column - 6u);
     }
 
-    void RGBMatrix::startCurrentColumn() noexcept
+    void RGBMatrix::_startCurrentColumn() noexcept
     {
-        configureSelectorPinsOutput();
-        deselectAllColumns();
-
         preload();
-
-        // Use whichever direction you've settled on.
-        selectColumn(CurrentColumn);
-
-        // Reset TC + PC.
-        SN_CT16B1->TMRCTRL = (1u << 1);
-        while (SN_CT16B1->TMRCTRL & (1u << 1))
-        {
-        }
-
-        // Clear any stale MR24 interrupt.
-        SN_CT16B1->IC = (1u << 24);
-
-        // Start this PWM slot.
+        _selectColumn(CurrentColumn);
+        SN_CT16B1->TMRCTRL = 1u << 1;
+        while (SN_CT16B1->TMRCTRL & (1u << 1)) __NOP();
+        SlotStartedAt = hal::HighResolutionTimer::rawTicks();
         SN_CT16B1->TMRCTRL = 1u;
-
-        // Expose PWM only after everything is ready.
         SN_CT16B1->PWMIOENB = PWMOutputMask;
-    }
-
-    void RGBMatrix::pause() noexcept
-    {
-        Running = false;
-
-        // Prevent CT16B1 from touching the selector pins while Matrix owns them.
-        NVIC_DisableIRQ(CT16B1_IRQn);
-
-        SN_CT16B1->PWMIOENB = 0u;
-        SN_CT16B1->TMRCTRL = 0u;
-
-        SN_CT16B1->IC = (1u << 24);
-        NVIC_ClearPendingIRQ(CT16B1_IRQn);
-
-        deselectAllColumns();
     }
 
     void RGBMatrix::resume() noexcept
     {
-        // Matrix::end() has already relinquished the shared pins.
         Running = true;
-
-        SN_CT16B1->IC = (1u << 24);
+        SN_CT16B1->IC = 1u << 24;
         NVIC_ClearPendingIRQ(CT16B1_IRQn);
-
-        startCurrentColumn();
-
+        _startCurrentColumn();
         NVIC_EnableIRQ(CT16B1_IRQn);
     }
 
-    void RGBMatrix::handleInterrupt() noexcept
+    void RGBMatrix::_handleInterrupt() noexcept
     {
         if ((SN_CT16B1->RIS & (1u << 24)) == 0u)
             return;
-
-        SN_CT16B1->IC = (1u << 24);
-
-        // Timer has already stopped because MR24STOP is set.
+        const std::uint32_t slotTicks = (hal::HighResolutionTimer::rawTicks() - SlotStartedAt) & 0x00FFFFFFu;
+        if (slotTicks > profiling::RGBSlotMaxTicks)
+            profiling::RGBSlotMaxTicks = slotTicks;
+        SN_CT16B1->IC = 1u << 24;
         SN_CT16B1->PWMIOENB = 0u;
-        deselectAllColumns();
-
+        const auto startTime = hal::HighResolutionTimer::rawTicks();
+        _deselectAllColumns();
         advance();
         if (ElectricalMatrix::Ownership == SharedOwnership::ScanHandOverRequest)
         {
@@ -365,11 +239,12 @@ namespace quartz::kb::rgb
             return;
         }
 
-        startCurrentColumn();
+        _startCurrentColumn();
+        profiling::RGBTicks = hal::HighResolutionTimer::rawTicks() - startTime;
     }
 }
 
 extern "C" void CT16B1_IRQHandler()
 {
-    quartz::kb::rgb::RGBMatrix::handleInterrupt();
+    quartz::kb::rgb::RGBMatrix::_handleInterrupt();
 }

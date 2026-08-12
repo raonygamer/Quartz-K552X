@@ -5,9 +5,8 @@ namespace quartz::kb
 {
     class Keyboard
     {
-    public:
         inline static std::uint32_t LastScanTicks = 0;
-
+    public:
         static void scanAndSend();
     };
 }

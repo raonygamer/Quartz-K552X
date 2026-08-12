@@ -1,4 +1,5 @@
-#include "MatrixDefinitions.hpp"
+#pragma once
+#include "kb/MatrixDefinitions.hpp"
 #include "usb/hid/KeyboardUsage.hpp"
 
 namespace quartz::kb
@@ -12,7 +13,7 @@ namespace quartz::kb
 
     struct ElectricalMatrix
     {
-        inline static SharedOwnership Ownership = SharedOwnership::RGBMatrix;
+        inline static auto Ownership = SharedOwnership::RGBMatrix;
         inline static bool KeyScanPending = false;
     };
 

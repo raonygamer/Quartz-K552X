@@ -16,9 +16,11 @@ namespace quartz::rpc::senders
             .EndScanTicks = profiling::EndScanTicks,
             .StateUpdateTicks = profiling::StateUpdateTicks,
             .HIDTicks = profiling::HIDTicks,
-            .AverageScanPeriodTicks = profiling::AverageScanPeriodTicks
+            .RGBTicks = profiling::RGBTicks,
+            .AverageScanPeriodTicks = profiling::AverageScanPeriodTicks,
+            .RGBSlotMaxTicks = profiling::RGBSlotMaxTicks,
         };
-
+        profiling::RGBSlotMaxTicks = 0;
         RPC::send(PacketType::PerformanceResponse, responseFor, std::as_bytes(std::span{ &packet, 1 }));
     }
 }

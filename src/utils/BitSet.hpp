@@ -36,7 +36,7 @@ namespace quartz::utils
             }
         }
 
-        void set(std::size_t index) noexcept
+        void set(const std::size_t index) noexcept
         {
             if (index >= Size)
             {
@@ -49,7 +49,7 @@ namespace quartz::utils
             data[byteIndex] |= (1u << bitIndex);
         }
 
-        void clear(std::size_t index) noexcept
+        void clear(const std::size_t index) noexcept
         {
             if (index >= Size)
             {
@@ -62,7 +62,7 @@ namespace quartz::utils
             data[byteIndex] &= ~(1u << bitIndex);
         }
 
-        std::uint8_t get(std::size_t index) const noexcept
+        std::uint8_t get(const std::size_t index) const noexcept
         {
             if (index >= Size)
             {
@@ -75,17 +75,17 @@ namespace quartz::utils
             return (data[byteIndex] >> bitIndex) & 1u;
         }
 
-        std::size_t size() const noexcept
+        static constexpr std::size_t size() noexcept
         {
             return Size;
         }
 
-        bool test(std::size_t index) const noexcept
+        bool test(const std::size_t index) const noexcept
         {
             return get(index) != 0u;
         }
 
-        bool equals(const BitSet<Size>& other) const noexcept
+        bool equals(const BitSet& other) const noexcept
         {
             for (std::size_t i = 0; i < data.size(); ++i)
             {
@@ -97,12 +97,12 @@ namespace quartz::utils
             return true;
         }
 
-        bool operator==(const BitSet<Size>& other) const noexcept
+        bool operator==(const BitSet& other) const noexcept
         {
             return equals(other);
         }
 
-        bool operator!=(const BitSet<Size>& other) const noexcept
+        bool operator!=(const BitSet& other) const noexcept
         {
             return !equals(other);
         }
@@ -119,7 +119,7 @@ namespace quartz::utils
             return false;
         }
 
-        void cloneInto(BitSet<Size>& other) const noexcept
+        void cloneInto(BitSet& other) const noexcept
         {
             for (std::size_t i = 0; i < data.size(); ++i)
             {

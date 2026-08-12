@@ -21,7 +21,7 @@ namespace quartz::hal
         static void initializeSystemTick() noexcept;
         static void teardownEverything() noexcept;
         [[noreturn]]
-        static void toBootloader() noexcept;
+        static void toBootloader(bool teardown = true) noexcept;
         [[noreturn]]
         static void reset() noexcept;
     };

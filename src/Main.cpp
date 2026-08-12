@@ -1,64 +1,39 @@
-#include "debug/DebugEndpoint.hpp"
 #include "debug/Panic.hpp"
 #include "hal/System.hpp"
 #include "hal/gpio/GPIO.hpp"
 #include "hal/timer/HighResolutionTimer.hpp"
-#include "hal/timer/Timer.hpp"
 #include "hal/usb/Controller.hpp"
 #include "kb/ElectricalMatrix.hpp"
 #include "kb/Keyboard.hpp"
 #include "kb/KeyboardState.hpp"
-#include "kb/Matrix.hpp"
+#include "kb/MatrixTimingProbe.hpp"
 #include "kb/rgb/RGBMatrix.hpp"
 #include "quartz/Profiling.hpp"
+#include "quartz/rpc/RPC.hpp"
 #include "usb/Device.hpp"
 #include "usb/hid/KeyboardReporter.hpp"
 #include "utils/Time.hpp"
 
 namespace quartz
 {
-    constexpr std::uint32_t RawTickMask = 0x00FFFFFFu;
     constexpr std::uint32_t ScanIntervalTicks = utils::Time::microsecondsToTicks(2000);
+    static bool matrixProbeChordLatched = false;
 
-    namespace kb
+    static void sendMatrixTimingProbeResult(const kb::SizedMatrixTimingProbeResult& result) noexcept
     {
-        void Keyboard::scanAndSend()
-        {
-            const auto scanStart = hal::HighResolutionTimer::rawTicks();
-
-            if (LastScanTicks != 0)
-            {
-                const auto scanPeriod = (scanStart - LastScanTicks) & RawTickMask;
-
-                if (profiling::AverageScanPeriodTicks == 0)
-                    profiling::AverageScanPeriodTicks = scanPeriod;
-                else
-                    profiling::AverageScanPeriodTicks = (profiling::AverageScanPeriodTicks * 31u + scanPeriod) / 32u;
-            }
-
-            LastScanTicks = scanStart;
-
-            kb::Matrix::scan();
-
-            const auto hidStart = hal::HighResolutionTimer::rawTicks();
-
-            if (KeyboardState::anyKeyChanged())
-            {
-                usb::hid::markDirty();
-            }
-            usb::hid::service();
-            profiling::HIDTicks = (hal::HighResolutionTimer::rawTicks() - hidStart) & RawTickMask;
-        }
+        rpc::RPC::send(
+            rpc::PacketType::MatrixTimingProbeResult,
+            0,
+            std::as_bytes(std::span{ &result, 1 })
+        );
     }
 
     [[noreturn]]
     static void Start()
     {
         NVIC_SetPriority(CT16B1_IRQn, 0);
-        NVIC_SetPriority(CT16B0_IRQn, 1);
         NVIC_SetPriority(USB_IRQn, 2);
-
-        kb::Matrix::initialize();
+        NVIC_SetPriority(CT16B0_IRQn, 3);
         kb::rgb::RGBMatrix::initialize();
 
         hal::GPIO::setPinMode(hal::GPIOPort::B, hal::GPIOPin::PIN14, hal::GPIOMode::Output);
@@ -70,13 +45,13 @@ namespace quartz
         std::uint32_t softwareTicks = 0;
         std::uint32_t nextScanTicks = ScanIntervalTicks;
 
-        kb::rgb::RGBMatrix::fill(0, 255, 0);
+        kb::rgb::RGBMatrix::fill(255, 255, 0);
         kb::rgb::RGBMatrix::swapBuffers();
         kb::rgb::RGBMatrix::resume();
         for (;;)
         {
             const std::uint32_t rawTicks = hal::HighResolutionTimer::rawTicks();
-            softwareTicks += (rawTicks - previousRawTicks) & RawTickMask;
+            softwareTicks += (rawTicks - previousRawTicks) & profiling::RawTickMask;
             previousRawTicks = rawTicks;
 
             if (!kb::ElectricalMatrix::KeyScanPending && static_cast<std::int32_t>(softwareTicks - nextScanTicks) >= 0)
@@ -90,6 +65,36 @@ namespace quartz
             {
                 kb::ElectricalMatrix::KeyScanPending = false;
                 kb::Keyboard::scanAndSend();
+                const bool matrixProbeChord =
+                    kb::KeyboardState::isFunctionPressed() &&
+                    kb::KeyboardState::isKeyDown(kb::Key::LeftControl) &&
+                    kb::KeyboardState::isKeyDown(kb::Key::LeftShift) &&
+                    kb::KeyboardState::isKeyDown(kb::Key::F12);
+
+                if (matrixProbeChord && !matrixProbeChordLatched)
+                {
+                    matrixProbeChordLatched = true;
+
+                    // Matrix::scan() has already returned the bus to RGB,
+                    // so request it back for the diagnostic.
+                    kb::rgb::RGBMatrix::handOver();
+                    while (!kb::rgb::RGBMatrix::handedOver())
+                        __NOP();
+
+                    const auto result = kb::MatrixTimingProbe::run();
+                    kb::rgb::RGBMatrix::acquire();
+
+                    sendMatrixTimingProbeResult(result);
+
+                    // We just blocked the foreground scheduler for several seconds.
+                    // Don't try to catch up thousands of missed deadlines.
+                    previousRawTicks = hal::HighResolutionTimer::rawTicks();
+                    softwareTicks = 0;
+                    nextScanTicks = ScanIntervalTicks;
+                    continue;
+                }
+
+                matrixProbeChordLatched = matrixProbeChord;
             }
 
             if (kb::KeyboardState::isFunctionPressed() &&
@@ -116,8 +121,7 @@ extern "C" int main()
     if (quartz::debug::Panic::isNextRebootBootloader())
     {
         quartz::debug::Panic::setNextRebootIsBootloader(false);
-        quartz::hal::System::toBootloader();
-        // Unreachable
+        quartz::hal::System::toBootloader(false);
     }
 
     auto& state = quartz::debug::Panic::getState();

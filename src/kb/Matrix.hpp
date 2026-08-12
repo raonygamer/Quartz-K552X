@@ -19,60 +19,70 @@ namespace quartz::kb
 
     class Matrix
     {
-    public:
-        using ColumnBitSet = std::array<std::uint8_t, (MatrixDefinitions::Cols / 8)>;
+        friend class MatrixTimingProbe;
 
+        static constexpr std::uint32_t RowMaskC = 0xA000u; // C13, C15
+        static constexpr std::uint32_t RowMaskD = 0x0F80u; // D7-D11
+        static constexpr std::uint32_t ColMaskC = 0x1FFBu; // C0,C1,C3-C12
+        static constexpr std::uint32_t ColMaskB = 0x03C0u; // B6-B9
         constexpr static GPIOPinSet RowPins[MatrixDefinitions::Rows] = {
-            { hal::GPIOPort::C, hal::GPIOPin::PIN13 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN15 },
-            { hal::GPIOPort::D, hal::GPIOPin::PIN7 },
-            { hal::GPIOPort::D, hal::GPIOPin::PIN8 },
-            { hal::GPIOPort::D, hal::GPIOPin::PIN9 },
-            { hal::GPIOPort::D, hal::GPIOPin::PIN10 },
-            { hal::GPIOPort::D, hal::GPIOPin::PIN11 }
+            GPIOPinSet(hal::GPIOPort::C, hal::GPIOPin::PIN13),
+            GPIOPinSet(hal::GPIOPort::C, hal::GPIOPin::PIN15),
+            GPIOPinSet(hal::GPIOPort::D, hal::GPIOPin::PIN7),
+            GPIOPinSet(hal::GPIOPort::D, hal::GPIOPin::PIN8),
+            GPIOPinSet(hal::GPIOPort::D, hal::GPIOPin::PIN9),
+            GPIOPinSet(hal::GPIOPort::D, hal::GPIOPin::PIN10),
+            GPIOPinSet(hal::GPIOPort::D, hal::GPIOPin::PIN11)
         };
-
-        constexpr static GPIOPinSet ColPins[MatrixDefinitions::Cols] = {
-            { hal::GPIOPort::C, hal::GPIOPin::PIN0 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN1 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN3 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN4 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN5 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN6 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN7 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN8 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN9 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN10 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN11 },
-            { hal::GPIOPort::C, hal::GPIOPin::PIN12 },
-            { hal::GPIOPort::B, hal::GPIOPin::PIN6 },
-            { hal::GPIOPort::B, hal::GPIOPin::PIN7 },
-            { hal::GPIOPort::B, hal::GPIOPin::PIN8 },
-            { hal::GPIOPort::B, hal::GPIOPin::PIN9 }
-        };
-
-        static std::size_t getKeyIndex(const uint8_t row, const uint8_t col) noexcept
-        {
-            return static_cast<std::size_t>(row) * MatrixDefinitions::Cols + col;
-        }
-
-        static utils::MatrixPosition getKeyPosition(const std::size_t index) noexcept
-        {
-            return utils::MatrixPosition{
-                static_cast<std::uint8_t>(index / MatrixDefinitions::Cols),
-                static_cast<std::uint8_t>(index % MatrixDefinitions::Cols)
-            };
-        }
-
-        static void initialize() noexcept;
-        static void setRowPinsMode(const hal::GPIOMode mode) noexcept;
-        static void setRowPinValue(const std::uint8_t row, const bool high) noexcept;
-        static void setAllRowPinsValue(const bool high) noexcept;
-        static void setColPinsMode(const hal::GPIOMode mode, const hal::GPIOPull pull) noexcept;
-        [[gnu::always_inline]]
-        inline static std::uint16_t readColPins() noexcept;
-        static void begin() noexcept;
+    public:
+        static std::size_t getKeyIndex(uint8_t row, uint8_t col) noexcept;
+        static utils::MatrixPosition getKeyPosition(std::size_t index) noexcept;
         static void scan() noexcept;
-        static void end() noexcept;
+
+    private:
+        static void _begin() noexcept;
+        static void _end() noexcept;
+        static void _setRowPinsMode(hal::GPIOMode mode) noexcept;
+        static void _setRowPinValue(std::uint8_t row, bool high) noexcept;
+        static void _setAllRowPinsValue(bool high) noexcept;
+        static void _setColPinsMode(hal::GPIOMode mode, hal::GPIOPull pull) noexcept;
+        static std::uint16_t _readColPins() noexcept;
+        static constexpr std::uint32_t _expandCFGMask(std::uint32_t pinMask) noexcept;
+        static constexpr std::uint32_t _makeCFGValue(std::uint32_t pinMask, std::uint32_t value) noexcept;
+
+        inline static std::uint32_t ColCFGMaskC = _expandCFGMask(ColMaskC);
+        inline static std::uint32_t ColCFGMaskB = _expandCFGMask(ColMaskB);
+        inline static std::uint32_t ColCFGInactiveC = _makeCFGValue(ColMaskC, 0b10u);
+        inline static std::uint32_t ColCFGInactiveB = _makeCFGValue(ColMaskB, 0b10u);
     };
+
+    constexpr std::uint32_t Matrix::_expandCFGMask(const std::uint32_t pinMask) noexcept
+    {
+        std::uint32_t result = 0;
+
+        for (std::uint32_t pin = 0; pin < 16; ++pin)
+        {
+            if ((pinMask & (1u << pin)) != 0)
+            {
+                result |= 0x3u << (pin * 2u);
+            }
+        }
+
+        return result;
+    }
+
+    constexpr std::uint32_t Matrix::_makeCFGValue(const std::uint32_t pinMask, const std::uint32_t value) noexcept
+    {
+        std::uint32_t result = 0;
+
+        for (std::uint32_t pin = 0; pin < 16; ++pin)
+        {
+            if ((pinMask & (1u << pin)) != 0)
+            {
+                result |= (value & 0x3u) << (pin * 2u);
+            }
+        }
+
+        return result;
+    }
 }

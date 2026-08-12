@@ -41,9 +41,10 @@ namespace quartz::hal
         SN_SYS0->IVTM = 0;
     }
 
-    void System::toBootloader() noexcept
+    void System::toBootloader(const bool teardown) noexcept
     {
-        teardownEverything();
+        if (teardown)
+            teardownEverything();
         __asm volatile(
             "cpsid i\n"
             "dsb\n"
