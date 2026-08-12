@@ -1,15 +1,25 @@
 #pragma once
+#include "kb/KeyMap.hpp"
+#include "kb/MatrixDefinitions.hpp"
 #include "quartz/utils/Color32.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <span>
 
 namespace quartz::kb::rgb
 {
     class RGBMatrix
     {
     public:
-        static constexpr std::size_t Rows = 7;
-        static constexpr std::size_t Columns = 16;
+        template <std::size_t R, std::size_t C>
+        using Color32Matrix = utils::Color32[R][C];
+        template <std::size_t N>
+        using FlatColor32Matrix = utils::Color32[N];
+
+        static constexpr std::size_t Rows = MatrixDefinitions::Rows;
+        static constexpr std::size_t Columns = MatrixDefinitions::Cols;
+        using SizedColor32Matrix = Color32Matrix<Rows, Columns>;
+        using SizedFlatColor32Matrix = FlatColor32Matrix<MatrixDefinitions::Size>;
 
         static void initialize() noexcept;
 
@@ -19,7 +29,8 @@ namespace quartz::kb::rgb
 
         static void setPixel(std::uint8_t row, std::uint8_t column, utils::Color32 color) noexcept;
         static void setPixel(std::uint8_t row, std::uint8_t column, std::uint8_t r, std::uint8_t g, std::uint8_t b) noexcept;
-        static void setFramebuffer(const utils::Color32* colors, std::size_t count) noexcept;
+        static bool setFramebuffer(const SizedFlatColor32Matrix colors) noexcept;
+        static bool swapBuffers() noexcept;
 
         static utils::Color32 getPixel(std::uint8_t row, std::uint8_t column) noexcept;
 
@@ -54,7 +65,11 @@ namespace quartz::kb::rgb
         static void selectColumn(std::uint8_t column) noexcept;
         static void startCurrentColumn() noexcept;
         static inline bool Running = false;
-        inline static utils::Color32 Framebuffer[Rows][Columns]{};
+        inline static volatile bool SwapPending = false;
+        inline static SizedColor32Matrix* ReadingBuffer = nullptr;
+        inline static SizedColor32Matrix* WritingBuffer = nullptr;
+        inline static SizedColor32Matrix FrontBuffer = {};
+        inline static SizedColor32Matrix BackBuffer = {};
         inline static std::uint8_t CurrentColumn = 0;
     };
 }

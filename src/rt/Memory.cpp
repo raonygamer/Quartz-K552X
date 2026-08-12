@@ -22,17 +22,11 @@ extern "C"
 
     void* memcpy(void* const destination, const void* const source, std::size_t count) noexcept
     {
-        auto* output =
-            static_cast<volatile std::uint8_t*>(destination);
+        auto* output = static_cast<std::uint8_t*>(destination);
+        const auto* input = static_cast<const std::uint8_t*>(source);
 
-        const auto* input =
-            static_cast<const volatile std::uint8_t*>(source);
-
-        while (count != 0u)
-        {
+        while (count-- != 0)
             *output++ = *input++;
-            --count;
-        }
 
         return destination;
     }

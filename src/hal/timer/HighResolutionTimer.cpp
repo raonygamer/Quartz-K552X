@@ -1,5 +1,7 @@
 #include "HighResolutionTimer.hpp"
 
+#include "rt/Concurrency.hpp"
+
 namespace quartz::hal
 {
     void HighResolutionTimer::initialize() noexcept
@@ -59,16 +61,13 @@ namespace quartz::hal
 
     std::uint64_t HighResolutionTimer::nowTicks() noexcept
     {
-        const std::uint32_t primask = __get_PRIMASK();
-        __disable_irq();
-
+        std::uint64_t high = OverflowCount;
         if (SN_CT16B0->RIS & 1u)
         {
             OverflowCount = OverflowCount + 1u;
             SN_CT16B0->IC = 1u;
         }
 
-        std::uint64_t high = OverflowCount;
         std::uint32_t low = readHardwareTicks();
 
         // Catch a rollover that occurred while taking the snapshot.
@@ -79,11 +78,6 @@ namespace quartz::hal
 
             high = OverflowCount;
             low = readHardwareTicks();
-        }
-
-        if (!primask)
-        {
-            __enable_irq();
         }
 
         return (high << 24) | low;
@@ -109,7 +103,6 @@ namespace quartz::hal
             const std::uint32_t current = readHardwareTicks();
             elapsed += (current - previous) & 0x00FFFFFFu;
             previous = current;
-            __NOP();
         }
     }
 

@@ -1,8 +1,9 @@
 #pragma once
-
 #include "usb/hid/KeyboardUsage.hpp"
+#include "utils/MatrixPosition.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <array>
 
 namespace quartz::kb
 {
