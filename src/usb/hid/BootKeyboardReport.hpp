@@ -4,7 +4,7 @@
 
 namespace quartz::usb::hid
 {
-    struct __attribute__((packed)) BootKeyboardReport
+    struct [[gnu::packed]] BootKeyboardReport
     {
         static constexpr std::size_t KeySlots = 6;
 

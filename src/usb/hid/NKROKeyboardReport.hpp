@@ -5,14 +5,15 @@
 
 namespace quartz::usb::hid
 {
-    struct __attribute__((packed)) NKROKeyboardReport
+    struct [[gnu::packed]] NKROKeyboardReport
     {
         static constexpr auto MaximumUsage = static_cast<std::uint8_t>(KeyboardUsage::International1);
         static constexpr std::size_t KeyBytes = (static_cast<std::size_t>(MaximumUsage) + 8u) / 8u;
 
-        std::uint8_t Modifiers{};
-        std::uint8_t Reserved{};
-        std::array<std::uint8_t, KeyBytes> Keys{};
+        ReportId Id = ReportId::Keyboard;
+        std::uint8_t Modifiers = {};
+        std::uint8_t Reserved = {};
+        std::array<std::uint8_t, KeyBytes> Keys = {};
 
         constexpr void clear() noexcept
         {
@@ -51,5 +52,5 @@ namespace quartz::usb::hid
     };
 
     static_assert(NKROKeyboardReport::KeyBytes == 17);
-    static_assert(sizeof(NKROKeyboardReport) == 19);
+    static_assert(sizeof(NKROKeyboardReport) == 20);
 }

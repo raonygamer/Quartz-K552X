@@ -32,4 +32,10 @@ namespace quartz::usb::hid
         HIDOutputReport,
         HIDFeatureReport
     };
+
+    enum class ReportId : std::uint8_t
+    {
+        Keyboard = 1,
+        Consumer = 2,
+    };
 }

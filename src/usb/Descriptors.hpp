@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "usb/hid/BootKeyboardReport.hpp"
+#include "usb/hid/HIDProtocol.hpp"
 #include "usb/hid/NKROKeyboardReport.hpp"
 
 namespace quartz::usb
@@ -25,17 +26,11 @@ namespace quartz::usb
 
         inline static constexpr auto ReportDescriptor =
             std::to_array<std::uint8_t>({
-                // Usage Page (Generic Desktop)
-                0x05,
-                0x01,
-
-                // Usage (Keyboard)
-                0x09,
-                0x06,
-
-                // Collection (Application)
-                0xA1,
-                0x01,
+                // Keyboard
+                0x05, 0x01,                                               // Usage Page (Generic Desktop)
+                0x09, 0x06,                                               // Usage (Keyboard)
+                0xA1, 0x01,                                               // Collection (Application)
+                0x85, static_cast<std::uint8_t>(hid::ReportId::Keyboard), // Report ID
 
                 // Modifier byte
                 0x05,
@@ -110,8 +105,20 @@ namespace quartz::usb
                 0x84,
                 0x81,
                 0x02,
+                0xC0,                                                     // End Collection
 
-                // End Collection
+                // Consumer Control
+                0x05, 0x0C,                                               // Usage Page (Consumer)
+                0x09, 0x01,                                               // Usage (Consumer Control)
+                0xA1, 0x01,                                               // Collection (Application)
+                0x85, static_cast<std::uint8_t>(hid::ReportId::Consumer), // Report ID
+                0x15, 0x00,
+                0x26, 0xFF, 0x03,
+                0x19, 0x00,
+                0x2A, 0xFF, 0x03,
+                0x75, 0x10,
+                0x95, 0x01,
+                0x81, 0x00,
                 0xC0,
             });
 

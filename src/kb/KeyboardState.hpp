@@ -4,7 +4,9 @@
 
 #include "Matrix.hpp"
 #include "MatrixDefinitions.hpp"
+#include "kb/KeyMap.hpp"
 #include "usb/hid/BootKeyboardReport.hpp"
+#include "usb/hid/ConsumerControlReport.hpp"
 #include "usb/hid/HIDProtocol.hpp"
 #include "usb/hid/NKROKeyboardReport.hpp"
 #include "utils/BitSet.hpp"
@@ -50,9 +52,11 @@ namespace quartz::kb
         static void debounce(const utils::BitSet<MatrixDefinitions::Size>& rawStates) noexcept;
         static void updateKeyStates(const utils::BitSet<MatrixDefinitions::Size>& rawStates) noexcept;
         static bool anyKeyChanged() noexcept;
-        static bool isKeyDown(const quartz::usb::hid::KeyboardUsage usage);
+        static bool isKeyDown(usb::hid::KeyboardUsage usage);
         static bool isFunctionPressed() noexcept;
+        static KeyLayer resolveLayer() noexcept;
         static usb::hid::BootKeyboardReport buildBootReport() noexcept;
         static usb::hid::NKROKeyboardReport buildNKROReport() noexcept;
+        static usb::hid::ConsumerControlReport buildConsumerReport() noexcept;
     };
 }

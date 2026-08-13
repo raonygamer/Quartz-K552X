@@ -1,30 +1,30 @@
 #pragma once
 #include "BootKeyboardReport.hpp"
+#include "ConsumerControlReport.hpp"
+#include "NKROKeyboardReport.hpp"
 #include "usb/Device.hpp"
 #include "usb/hid/HIDProtocol.hpp"
 
 namespace quartz::usb::hid
 {
-    inline BootKeyboardReport PendingBootKeyboard{};
-    inline NKROKeyboardReport PendingReportKeyboard{};
-    inline bool ReportDirty = false;
+    inline BootKeyboardReport PendingBootKeyboard = {};
+    inline NKROKeyboardReport PendingReportKeyboard = {};
+    inline ConsumerControlReport PendingConsumer = {};
+
+    inline bool KeyboardReportDirty = false;
+    inline bool ConsumerReportDirty = false;
     inline auto LastProtocol = HIDProtocol::Boot;
 
-    inline void markDirty() noexcept
+    inline void markReportsDirty() noexcept
     {
-        ReportDirty = true;
+        KeyboardReportDirty = true;
+        ConsumerReportDirty = true;
     }
 
-    inline std::span<const std::byte> rawCurrentKeyboardReport()
+    template<typename T>
+    std::span<const std::byte> rawReport(const T& report) noexcept
     {
-        switch (Device::getProtocol())
-        {
-        case HIDProtocol::Boot:
-            return std::span(reinterpret_cast<const std::byte*>(&PendingBootKeyboard), sizeof(PendingBootKeyboard));
-        case HIDProtocol::Report:
-            return std::span(reinterpret_cast<const std::byte*>(&PendingReportKeyboard), sizeof(PendingReportKeyboard));
-        }
-        return std::span(reinterpret_cast<const std::byte*>(&PendingBootKeyboard), sizeof(PendingBootKeyboard));
+        return { reinterpret_cast<const std::byte*>(&report), sizeof(report) };
     }
 
     inline void service() noexcept
@@ -37,22 +37,46 @@ namespace quartz::usb::hid
         if (protocol != LastProtocol)
         {
             LastProtocol = protocol;
-            ReportDirty = true;
+            KeyboardReportDirty = true;
+            ConsumerReportDirty = protocol == HIDProtocol::Report;
         }
 
-        if (!ReportDirty)
-            return;
         switch (protocol)
         {
         case HIDProtocol::Boot:
+        {
+            ConsumerReportDirty = false;
+
+            if (!KeyboardReportDirty)
+                return;
+
             PendingBootKeyboard = kb::KeyboardState::buildBootReport();
-            break;
-        case HIDProtocol::Report:
-            PendingReportKeyboard = kb::KeyboardState::buildNKROReport();
+            if (Device::sendReport(rawReport(PendingBootKeyboard)))
+                KeyboardReportDirty = false;
+
             break;
         }
 
-        if (Device::sendKeyboard(rawCurrentKeyboardReport()))
-            ReportDirty = false;
+        case HIDProtocol::Report:
+        {
+            if (KeyboardReportDirty)
+            {
+                PendingReportKeyboard = kb::KeyboardState::buildNKROReport();
+                if (!Device::sendReport(rawReport(PendingReportKeyboard)))
+                    return;
+
+                KeyboardReportDirty = false;
+            }
+
+            if (ConsumerReportDirty)
+            {
+                PendingConsumer = kb::KeyboardState::buildConsumerReport();
+                if (Device::sendReport(rawReport(PendingConsumer)))
+                    ConsumerReportDirty = false;
+            }
+
+            break;
+        }
+        }
     }
 }

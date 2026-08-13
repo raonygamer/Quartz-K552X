@@ -1,4 +1,3 @@
-#pragma once
 #include "kb/Keyboard.hpp"
 
 #include "hal/timer/HighResolutionTimer.hpp"
@@ -26,7 +25,7 @@ namespace quartz::kb
         Matrix::scan();
         if (KeyboardState::anyKeyChanged())
         {
-            usb::hid::markDirty();
+            usb::hid::markReportsDirty();
         }
 
         const auto hidStart = hal::HighResolutionTimer::rawTicks();

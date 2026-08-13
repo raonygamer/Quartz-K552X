@@ -141,7 +141,22 @@ namespace quartz::usb
             switch (State.ControlOut)
             {
             case hid::ControlOutType::HIDOutputReport:
-                kb::KeyboardState::CurrentLEDState.Raw = State.HIDOutputReport;
+                if (State.Protocol == hid::HIDProtocol::Report)
+                {
+                    if (State.HIDOutputReport[0] != static_cast<std::uint8_t>(hid::ReportId::Keyboard))
+                    {
+                        State.ControlOut = hid::ControlOutType::None;
+                        _stallControl();
+                        return;
+                    }
+
+                    kb::KeyboardState::CurrentLEDState.Raw = State.HIDOutputReport[1];
+                }
+                else
+                {
+                    kb::KeyboardState::CurrentLEDState.Raw = State.HIDOutputReport[0];
+                }
+
                 kb::KeyboardState::CurrentLEDState.updateLeds();
                 State.ControlOut = hid::ControlOutType::None;
                 proto::ControlPipe::startStatusIn();
@@ -274,7 +289,8 @@ namespace quartz::usb
         const auto& setup = State.Setup;
         const auto reportType = static_cast<hid::HIDReportType>(setup.value >> 8);
         const auto reportId = static_cast<std::uint8_t>(setup.value);
-        if (setup.isDeviceToHost() || reportId != 0)
+
+        if (setup.isDeviceToHost())
         {
             _stallControl();
             return;
@@ -283,13 +299,34 @@ namespace quartz::usb
         switch (reportType)
         {
         case hid::HIDReportType::Output:
+            if (State.Protocol == hid::HIDProtocol::Boot)
+            {
+                if (reportId != 0 || setup.length != 1)
+                {
+                    _stallControl();
+                    return;
+                }
+
+                State.ControlOut = hid::ControlOutType::HIDOutputReport;
+                proto::ControlPipe::startTransferOut(std::as_writable_bytes(std::span{ State.HIDOutputReport }).first(1));
+                return;
+            }
+
+            if (reportId != static_cast<std::uint8_t>(hid::ReportId::Keyboard) || setup.length != 2)
+            {
+                _stallControl();
+                return;
+            }
+
             State.ControlOut = hid::ControlOutType::HIDOutputReport;
-            proto::ControlPipe::startTransferOut(std::as_writable_bytes(std::span{ &State.HIDOutputReport, 1 }));
+            proto::ControlPipe::startTransferOut(std::as_writable_bytes(std::span{ State.HIDOutputReport }));
             return;
+
         case hid::HIDReportType::Feature:
             State.ControlOut = hid::ControlOutType::HIDFeatureReport;
             proto::ControlPipe::startTransferOut(std::span(State.HIDFeatureBuffer).first(setup.length));
             return;
+
         default:
             break;
         }
@@ -425,7 +462,7 @@ namespace quartz::usb
         rpc::RPC::initialize();
     }
 
-    bool Device::sendKeyboard(const std::span<const std::byte> report) noexcept
+    bool Device::sendReport(const std::span<const std::byte> report) noexcept
     {
         if (!isConfigured() || proto::TransferPipe::isTransferring(hal::usb::EndpointNumber::EP1))
             return false;
@@ -435,7 +472,7 @@ namespace quartz::usb
 
     void Device::_sendCurrentKeyboardReportControl() noexcept
     {
-        const auto report = hid::rawCurrentKeyboardReport();
+        const auto report = hid::rawReport(hid::PendingReportKeyboard);
         if (report.data() == nullptr || report.size() == 0)
         {
             _stallControl();

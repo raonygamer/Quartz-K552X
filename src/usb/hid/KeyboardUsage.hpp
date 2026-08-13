@@ -114,6 +114,24 @@ namespace quartz::usb::hid
         RightGUI = 0xE7,
     };
 
+    enum class ConsumerUsage : std::uint16_t
+    {
+        None = 0x0000,
+
+        AudioPlayer = 0x01C7,       // F1
+        VolumeDecrement = 0x00EA,   // F2
+        VolumeIncrement = 0x00E9,   // F3
+        Mute = 0x00E2,              // F4
+        Stop = 0x00B7,              // F5
+        ScanPreviousTrack = 0x00B6, // F6
+        PlayPause = 0x00CD,         // F7
+        ScanNextTrack = 0x00B5,     // F8
+        EmailReader = 0x018A,       // F9
+        Home = 0x0223,              // F10
+        Calculator = 0x0192,        // F11
+        Search = 0x0221,            // F12
+    };
+
     enum class KeyboardLED : std::uint8_t
     {
         NumLock = 1u << 0,

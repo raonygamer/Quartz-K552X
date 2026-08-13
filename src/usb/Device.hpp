@@ -26,7 +26,7 @@ namespace quartz::usb
 
         hid::HIDProtocol Protocol = hid::HIDProtocol::Report;
         std::uint8_t IdleRate = 0;
-        std::uint8_t HIDOutputReport = 0;
+        std::array<std::uint8_t, 2> HIDOutputReport = {};
         std::array<std::byte, 64> HIDFeatureBuffer = {};
         hid::ControlOutType ControlOut = hid::ControlOutType::None;
 
@@ -45,7 +45,7 @@ namespace quartz::usb
         static std::uint8_t getConfiguration() noexcept;
         static void sendControlResponse(std::span<const std::uint8_t> buff, std::size_t requestedLength) noexcept;
         static bool waitUntilConfigured(std::uint64_t timeoutMs = 2000) noexcept;
-        static bool sendKeyboard(std::span<const std::byte> report) noexcept;
+        static bool sendReport(std::span<const std::byte> report) noexcept;
         static hid::HIDProtocol getProtocol() noexcept;
 
     private:

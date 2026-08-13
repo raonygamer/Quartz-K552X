@@ -1,6 +1,7 @@
 #include "KeyboardState.hpp"
 #include "ElectricalMatrix.hpp"
 #include "KeyMap.hpp"
+#include "usb/hid/ConsumerControlReport.hpp"
 #include "usb/hid/KeyboardReporter.hpp"
 
 namespace quartz::kb
@@ -42,7 +43,7 @@ namespace quartz::kb
         return !CurrentKeyStates.equals(LastKeyStates);
     }
 
-    bool KeyboardState::isKeyDown(const quartz::usb::hid::KeyboardUsage usage)
+    bool KeyboardState::isKeyDown(const usb::hid::KeyboardUsage usage)
     {
         const auto position = KeyMap::getMatrixPosition(usage);
         if (!position.isValid())
@@ -58,35 +59,77 @@ namespace quartz::kb
         return CurrentKeyStates.test(index);
     }
 
-    usb::hid::BootKeyboardReport KeyboardState::buildBootReport() noexcept
+    KeyLayer KeyboardState::resolveLayer() noexcept
     {
-        usb::hid::BootKeyboardReport report = {};
         for (std::size_t index = 0; index < MatrixDefinitions::Size; ++index)
         {
             if (!CurrentKeyStates.test(index))
                 continue;
 
             const auto [row, col] = Matrix::getKeyPosition(index);
-            const auto action = KeyMap::Actions[row][col];
+            const auto action = KeyMap::getAction(KeyLayer::Base, row, col);
+            if (action.Type == KeyActionType::Layer)
+                return action.Layer;
+        }
+
+        return KeyLayer::Base;
+    }
+
+    usb::hid::BootKeyboardReport KeyboardState::buildBootReport() noexcept
+    {
+        usb::hid::BootKeyboardReport report = {};
+        const auto layer = resolveLayer();
+        for (std::size_t index = 0; index < MatrixDefinitions::Size; ++index)
+        {
+            if (!CurrentKeyStates.test(index))
+                continue;
+
+            const auto [row, col] = Matrix::getKeyPosition(index);
+            const auto action = KeyMap::getAction(layer, row, col);
             if (action.Type == KeyActionType::HID)
                 report.add(action.Usage);
         }
+
         return report;
     }
 
     usb::hid::NKROKeyboardReport KeyboardState::buildNKROReport() noexcept
     {
         usb::hid::NKROKeyboardReport report;
+        const auto layer = resolveLayer();
         for (std::size_t index = 0; index < MatrixDefinitions::Size; ++index)
         {
             if (!CurrentKeyStates.test(index))
                 continue;
 
             const auto [row, col] = Matrix::getKeyPosition(index);
-            const auto action = KeyMap::Actions[row][col];
+            const auto action = KeyMap::getAction(layer, row, col);
             if (action.Type == KeyActionType::HID)
                 report.add(action.Usage);
         }
+
+        return report;
+    }
+
+    usb::hid::ConsumerControlReport KeyboardState::buildConsumerReport() noexcept
+    {
+        usb::hid::ConsumerControlReport report;
+        const auto layer = resolveLayer();
+
+        for (std::size_t index = 0; index < MatrixDefinitions::Size; ++index)
+        {
+            if (!CurrentKeyStates.test(index))
+                continue;
+
+            const auto [row, col] = Matrix::getKeyPosition(index);
+            const auto action = KeyMap::getAction(layer, row, col);
+            if (action.Type == KeyActionType::Consumer)
+            {
+                report.Usage = action.ConsumerUsage;
+                break;
+            }
+        }
+
         return report;
     }
 }
