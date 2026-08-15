@@ -49,13 +49,13 @@ namespace quartz::kb
         if (!position.isValid())
             return false;
 
-        const auto index = Matrix::getKeyIndex(position.Row, position.Col);
+        const auto index = MatrixDefinitions::getKeyIndex(position.Row, position.Col);
         return CurrentKeyStates.test(index);
     }
 
     bool KeyboardState::isFunctionPressed() noexcept
     {
-        const auto index = Matrix::getKeyIndex(kb::FnRow, kb::FnCol);
+        const auto index = MatrixDefinitions::getKeyIndex(FnRow, FnCol);
         return CurrentKeyStates.test(index);
     }
 
@@ -66,7 +66,7 @@ namespace quartz::kb
             if (!CurrentKeyStates.test(index))
                 continue;
 
-            const auto [row, col] = Matrix::getKeyPosition(index);
+            const auto [row, col] = MatrixDefinitions::getKeyPosition(index);
             const auto action = KeyMap::getAction(KeyLayer::Base, row, col);
             if (action.Type == KeyActionType::Layer)
                 return action.Layer;
@@ -84,7 +84,7 @@ namespace quartz::kb
             if (!CurrentKeyStates.test(index))
                 continue;
 
-            const auto [row, col] = Matrix::getKeyPosition(index);
+            const auto [row, col] = MatrixDefinitions::getKeyPosition(index);
             const auto action = KeyMap::getAction(layer, row, col);
             if (action.Type == KeyActionType::HID)
                 report.add(action.Usage);
@@ -102,7 +102,7 @@ namespace quartz::kb
             if (!CurrentKeyStates.test(index))
                 continue;
 
-            const auto [row, col] = Matrix::getKeyPosition(index);
+            const auto [row, col] = MatrixDefinitions::getKeyPosition(index);
             const auto action = KeyMap::getAction(layer, row, col);
             if (action.Type == KeyActionType::HID)
                 report.add(action.Usage);
@@ -121,7 +121,7 @@ namespace quartz::kb
             if (!CurrentKeyStates.test(index))
                 continue;
 
-            const auto [row, col] = Matrix::getKeyPosition(index);
+            const auto [row, col] = MatrixDefinitions::getKeyPosition(index);
             const auto action = KeyMap::getAction(layer, row, col);
             if (action.Type == KeyActionType::Consumer)
             {

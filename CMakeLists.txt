@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-add_subdirectory(protocol)
 
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR arm)
@@ -14,8 +13,27 @@ set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
 set(CMAKE_ASM_COMPILER ${TOOLCHAIN_PREFIX}gcc)
 set(CMAKE_OBJCOPY ${TOOLCHAIN_PREFIX}objcopy)
 set(CMAKE_SIZE ${TOOLCHAIN_PREFIX}size)
+execute_process(
+        COMMAND git rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+        COMMAND git rev-list --count HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_COUNT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE GIT_RESULT
+)
+
+if(NOT GIT_RESULT EQUAL 0)
+    set(GIT_COMMIT_COUNT 0)
+endif()
 
 project(QuartzK552X LANGUAGES C CXX ASM)
+add_subdirectory(protocol)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -87,6 +105,16 @@ target_link_options(${FIRMWARE_TARGET} PRIVATE
         -Wl,--orphan-handling=warn
         -Wl,--print-memory-usage
         -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/${FIRMWARE_TARGET}.map
+)
+
+
+
+target_compile_definitions(${FIRMWARE_TARGET} PRIVATE
+        MAJOR_VERSION=0
+        MINOR_VERSION=0
+        PATCH_VERSION=1
+        BUILD_NUMBER=${GIT_COMMIT_COUNT}
+        COMMIT_HASH=${GIT_COMMIT_HASH}
 )
 
 # Keep compiler helper routines such as 32/64-bit division available without

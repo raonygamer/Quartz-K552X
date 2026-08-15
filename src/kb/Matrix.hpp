@@ -35,8 +35,6 @@ namespace quartz::kb
             GPIOPinSet(hal::GPIOPort::D, hal::GPIOPin::PIN11)
         };
     public:
-        static std::size_t getKeyIndex(uint8_t row, uint8_t col) noexcept;
-        static utils::MatrixPosition getKeyPosition(std::size_t index) noexcept;
         static void scan() noexcept;
 
     private:
