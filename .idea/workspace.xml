@@ -30,19 +30,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="baa3ec05-c5ab-490b-ace4-169f8857b6ac" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/protocol/include/quartz/rpc/payloads/ChangeFirmwareRGBModePayload.hpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/protocol/include/quartz/rpc/payloads/ChangeLEDCharacteristicPayload.hpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/protocol/include/quartz/rpc/payloads/FirmwareInfoPayload.hpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/protocol/include/quartz/utils/RGBMode.hpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/utils/Firmware.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/protocol" beforeDir="false" afterPath="$PROJECT_DIR$/protocol" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/protocol/include/quartz/rpc/PacketType.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/protocol/include/quartz/rpc/PacketType.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kb/KeyboardState.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/KeyboardState.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kb/Matrix.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/Matrix.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kb/Matrix.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/Matrix.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kb/MatrixDefinitions.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/MatrixDefinitions.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/kb/rgb/RGBMatrix.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/kb/rgb/RGBMatrix.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,6 +41,9 @@
   <component name="CurrentDebugProfile">
     <option name="debugProfileId" value="c6eb0cf3-08bc-49e0-beaa-fc6519c628d1" />
   </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="125" />
+  </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug-ARM NONE GCC" />
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
@@ -59,7 +51,7 @@
         <entry key="$PROJECT_DIR$" value="master" />
       </map>
     </option>
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/protocol" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/src/usb/protocol/InTransferState.hpp" root0="FORCE_HIGHLIGHTING" />
@@ -71,6 +63,10 @@
   </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="gZSWQXLg" />
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
   </component>
   <component name="ProjectApplicationVersion">
     <option name="ide" value="CLion" />
@@ -95,6 +91,7 @@
     "CMake Application.quartz-k552x.executor": "Run",
     "CidrDebugProfileConversion": "true",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.RadMigrateCodeStyle": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.cidr.known.project.marker": "true",
@@ -107,13 +104,20 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
     "git-widget-placeholder": "master",
+    "junie.onboarding.icon.badge.shown": "true",
     "last_opened_file_path": "/mnt/work/GitHub/Quartz-K552X/src/debug",
+    "node.js.detected.package.eslint": "true",
     "node.js.detected.package.jshint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.jshint": "",
+    "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "org.rust.first.attach.projects": "true",
-    "settings.editor.selected.configurable": "CPPToolchains"
+    "settings.editor.selected.configurable": "CPPToolchains",
+    "to.speed.mode.migration.done": "true"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -133,29 +137,24 @@
     </key>
   </component>
   <component name="RunManager">
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="quartz-k552x" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="QuartzK552X" TARGET_NAME="quartz-k552x" CONFIG_NAME="Debug-ARM NONE GCC" RUN_TARGET_PROJECT_NAME="QuartzK552X" RUN_TARGET_NAME="quartz-k552x">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
   </component>
-  <component name="SelectedDebugProfileService"><![CDATA[{
-  "profileIdByStamp": [
+  <component name="SelectedDebugProfileService">{
+  &quot;profileIdByStamp&quot;: [
     {
-      "first": {
-        "##RUN_CONFIGURATION##": "CMake Application.quartz-k552x",
-        "cmake": "CMakeBuildProfile:Debug-ARM NONE GCC"
+      &quot;first&quot;: {
+        &quot;##RUN_CONFIGURATION##&quot;: &quot;CMake Application.quartz-k552x&quot;,
+        &quot;cmake&quot;: &quot;CMakeBuildProfile:Debug-ARM NONE GCC&quot;
       },
-      "second": "c6eb0cf3-08bc-49e0-beaa-fc6519c628d1"
+      &quot;second&quot;: &quot;c6eb0cf3-08bc-49e0-beaa-fc6519c628d1&quot;
     }
   ],
-  "modificationCount": 9
-}]]></component>
+  &quot;modificationCount&quot;: 9
+}</component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="baa3ec05-c5ab-490b-ace4-169f8857b6ac" name="Changes" comment="" />
